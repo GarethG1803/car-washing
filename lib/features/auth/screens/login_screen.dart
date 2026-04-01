@@ -6,6 +6,7 @@ import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
 import 'package:clean_ride/core/widgets/app_button.dart';
 import 'package:clean_ride/core/widgets/app_input.dart';
+import 'package:clean_ride/features/auth/providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -28,6 +29,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authNotifierProvider, (previous, next) {
+      if (next is AsyncError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error.toString()),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      } else if (next is AsyncData && previous != null && previous.isLoading) {
+        context.go('/role-select');
+      }
+    });
+
+    final authState = ref.watch(authNotifierProvider);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -119,7 +135,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               // Sign In button
               AppButton(
                 label: 'Sign In',
-                onPressed: () => context.go('/role-select'),
+                isLoading: authState.isLoading,
+                onPressed: authState.isLoading ? null : () {
+                  final email = _emailController.text.trim();
+                  final password = _passwordController.text;
+                  if (email.isNotEmpty && password.isNotEmpty) {
+                    ref.read(authNotifierProvider.notifier).login(email, password);
+                  }
+                },
               ),
 
               const SizedBox(height: AppSpacing.lg),

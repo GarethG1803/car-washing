@@ -77,4 +77,25 @@ class User {
       'User(id: $id, name: $name, email: $email, phone: $phone, '
       'avatarUrl: $avatarUrl, role: $role, createdAt: $createdAt, '
       'isActive: $isActive)';
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    UserRole parsedRole = UserRole.customer;
+    if (json['role'] == 'employee') {
+      parsedRole = UserRole.washer;
+    } else if (json['role'] == 'admin') {
+      parsedRole = UserRole.admin;
+    }
+
+    return User(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      role: parsedRole,
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'].toString()) 
+          : DateTime.now(),
+      isActive: json['is_active'] as bool? ?? true,
+    );
+  }
 }
