@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,7 +7,6 @@ import 'package:clean_ride/data/models/user.dart';
 import 'package:clean_ride/features/auth/screens/welcome_screen.dart';
 import 'package:clean_ride/features/auth/screens/login_screen.dart';
 import 'package:clean_ride/features/auth/screens/register_screen.dart';
-import 'package:clean_ride/features/auth/screens/otp_screen.dart';
 import 'package:clean_ride/features/auth/screens/role_select_screen.dart';
 
 // Customer shell
@@ -20,8 +18,6 @@ import 'package:clean_ride/features/customer/services/screens/service_catalog_sc
 import 'package:clean_ride/features/customer/services/screens/service_detail_screen.dart';
 import 'package:clean_ride/features/customer/orders/screens/order_history_screen.dart';
 import 'package:clean_ride/features/customer/orders/screens/order_detail_screen.dart';
-import 'package:clean_ride/features/customer/chat/screens/chat_list_screen.dart';
-import 'package:clean_ride/features/customer/chat/screens/chat_screen.dart';
 import 'package:clean_ride/features/customer/profile/screens/customer_profile_screen.dart';
 import 'package:clean_ride/features/customer/booking/screens/booking_flow_screen.dart';
 import 'package:clean_ride/features/customer/booking/screens/booking_confirmed_screen.dart';
@@ -46,7 +42,6 @@ import 'package:clean_ride/features/washer/jobs/screens/job_detail_screen.dart';
 import 'package:clean_ride/features/washer/earnings/screens/earnings_screen.dart';
 import 'package:clean_ride/features/washer/schedule/screens/schedule_screen.dart';
 import 'package:clean_ride/features/washer/profile/screens/washer_profile_screen.dart';
-import 'package:clean_ride/features/washer/inventory/screens/washer_inventory_screen.dart';
 
 // Admin shell
 import 'package:clean_ride/features/admin/shell/admin_shell.dart';
@@ -64,7 +59,6 @@ import 'package:clean_ride/features/admin/customers/screens/customer_crm_screen.
 import 'package:clean_ride/features/admin/customers/screens/customer_crm_detail.dart';
 import 'package:clean_ride/features/admin/employees/screens/payroll_screen.dart';
 import 'package:clean_ride/features/admin/services/screens/service_management_screen.dart';
-import 'package:clean_ride/features/admin/inventory/screens/inventory_management_screen.dart';
 import 'package:clean_ride/features/admin/analytics/screens/analytics_screen.dart';
 import 'package:clean_ride/features/admin/promotions/screens/promotions_screen.dart';
 
@@ -88,10 +82,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
-      ),
-      GoRoute(
-        path: '/otp',
-        builder: (context, state) => const OtpScreen(),
       ),
       GoRoute(
         path: '/role-select',
@@ -146,24 +136,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Branch 3 – Chat
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/customer/chat',
-                builder: (context, state) => const ChatListScreen(),
-                routes: [
-                  GoRoute(
-                    path: ':id',
-                    builder: (context, state) => ChatScreen(
-                      chatId: state.pathParameters['id']!,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          // Branch 4 – Profile
+          // Branch 3 – Profile
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -290,12 +263,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-      // ── Washer non-shell routes ──────────────────────────────────────
-      GoRoute(
-        path: '/washer/inventory',
-        builder: (context, state) => const WasherInventoryScreen(),
-      ),
-
       // ── Admin shell ──────────────────────────────────────────────────
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) =>
@@ -389,10 +356,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/services-mgmt',
         builder: (context, state) => const ServiceManagementScreen(),
-      ),
-      GoRoute(
-        path: '/admin/inventory-mgmt',
-        builder: (context, state) => const InventoryManagementScreen(),
       ),
       GoRoute(
         path: '/admin/analytics',

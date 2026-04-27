@@ -90,4 +90,32 @@ class ServicePackage {
       'price: $price, duration: $duration, category: $category, '
       'features: $features, imageUrl: $imageUrl, isPopular: $isPopular, '
       'rating: $rating)';
+
+  factory ServicePackage.fromApiJson(Map<String, dynamic> json) {
+    final vehicleType = json['vehicle_type']?.toString() ?? '';
+    ServiceCategory category;
+    switch (vehicleType) {
+      case 'suv':
+        category = ServiceCategory.premium;
+      case 'truck':
+        category = ServiceCategory.deluxe;
+      case 'motorcycle':
+        category = ServiceCategory.addon;
+      default:
+        category = ServiceCategory.basic;
+    }
+    return ServicePackage(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      duration: 60,
+      category: category,
+      features: [
+        if (vehicleType.isNotEmpty) 'For: ${vehicleType[0].toUpperCase()}${vehicleType.substring(1)}',
+      ],
+      isPopular: false,
+      rating: 0.0,
+    );
+  }
 }

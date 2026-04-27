@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
-import 'package:clean_ride/core/theme/app_spacing.dart';
 
 class AppAvatar extends StatelessWidget {
   final String? imageUrl;

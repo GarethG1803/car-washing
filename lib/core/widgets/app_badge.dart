@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
-import 'package:clean_ride/core/theme/app_typography.dart';
-import 'package:clean_ride/core/theme/app_spacing.dart';
 
 class AppBadge extends StatelessWidget {
   final int count;

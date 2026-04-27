@@ -6,6 +6,7 @@ import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
 import 'package:clean_ride/core/widgets/app_button.dart';
 import 'package:clean_ride/core/widgets/app_input.dart';
+import 'package:clean_ride/features/auth/providers/auth_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -19,7 +20,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
@@ -32,20 +32,43 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
-    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
   void _onCreateAccount() {
-    if (_formKey.currentState?.validate() ?? false) {
-      context.go('/otp');
-    }
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    ref.read(authNotifierProvider.notifier).register(
+          _nameController.text.trim(),
+          _emailController.text.trim(),
+          _passwordController.text,
+        );
   }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authNotifierProvider, (previous, next) {
+      if (next is AsyncError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error.toString()),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      } else if (next is AsyncData && previous != null && previous.isLoading) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account created! Please sign in.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        context.go('/login');
+      }
+    });
+
+    final authState = ref.watch(authNotifierProvider);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -64,7 +87,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header
                 Text(
                   'Create Account',
                   style: AppTypography.headlineLarge,
@@ -79,7 +101,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 const SizedBox(height: AppSpacing.xxl),
 
-                // Full Name
                 AppInput(
                   label: 'Full Name',
                   hint: 'Enter your full name',
@@ -96,7 +117,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 const SizedBox(height: AppSpacing.lg),
 
-                // Email
                 AppInput(
                   label: 'Email',
                   hint: 'Enter your email',
@@ -116,24 +136,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 const SizedBox(height: AppSpacing.lg),
 
-                // Phone
-                AppInput(
-                  label: 'Phone',
-                  hint: 'Enter your phone number',
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  prefixIcon: Icons.phone_outlined,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your phone number';
-                    }
-                    return null;
-                  },
-                ),
-
-                const SizedBox(height: AppSpacing.lg),
-
-                // Password
                 AppInput(
                   label: 'Password',
                   hint: 'Create a password',
@@ -165,7 +167,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 const SizedBox(height: AppSpacing.lg),
 
-                // Confirm Password
                 AppInput(
                   label: 'Confirm Password',
                   hint: 'Confirm your password',
@@ -198,7 +199,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 const SizedBox(height: AppSpacing.sm),
 
-                // Terms checkbox
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -261,15 +261,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 const SizedBox(height: AppSpacing.xl),
 
-                // Create Account button
                 AppButton(
                   label: 'Create Account',
-                  onPressed: _agreeToTerms ? _onCreateAccount : null,
+                  isLoading: authState.isLoading,
+                  onPressed: (_agreeToTerms && !authState.isLoading)
+                      ? _onCreateAccount
+                      : null,
                 ),
 
                 const SizedBox(height: AppSpacing.xxl),
 
-                // Already have an account
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

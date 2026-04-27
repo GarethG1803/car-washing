@@ -1,91 +1,340 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
 import 'package:clean_ride/core/widgets/app_status_indicator.dart';
+import 'package:clean_ride/data/providers/admin_orders_provider.dart';
 import 'package:gap/gap.dart';
 
-class AdminBookingDetail extends StatelessWidget {
+class AdminBookingDetail extends ConsumerWidget {
   final String bookingId;
   const AdminBookingDetail({super.key, required this.bookingId});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final detailAsync = ref.watch(adminOrderDetailProvider(bookingId));
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: Text('Booking #$bookingId'), backgroundColor: Colors.white, surfaceTintColor: Colors.transparent),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      appBar: AppBar(
+        title: Text(
+          'Order #${bookingId.length > 8 ? bookingId.substring(0, 8).toUpperCase() : bookingId.toUpperCase()}',
+        ),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
+      ),
+      body: detailAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const Gap(12),
+            Text('Could not load order', style: AppTypography.titleMedium),
+            const Gap(16),
+            TextButton(
+              onPressed: () => ref.invalidate(adminOrderDetailProvider(bookingId)),
+              child: const Text('Retry'),
+            ),
+          ]),
+        ),
+        data: (data) {
+          if (data == null) {
+            return const Center(child: Text('Order not found'));
+          }
+          return _DetailBody(bookingId: bookingId, data: data);
+        },
+      ),
+    );
+  }
+}
+
+class _DetailBody extends ConsumerStatefulWidget {
+  final String bookingId;
+  final Map<String, dynamic> data;
+  const _DetailBody({required this.bookingId, required this.data});
+
+  @override
+  ConsumerState<_DetailBody> createState() => _DetailBodyState();
+}
+
+class _DetailBodyState extends ConsumerState<_DetailBody> {
+  bool _isActing = false;
+
+  AppStatus _appStatus(String s) {
+    switch (s) {
+      case 'confirmed':
+        return AppStatus.confirmed;
+      case 'on_the_way':
+      case 'in_progress':
+        return AppStatus.inProgress;
+      case 'done':
+        return AppStatus.completed;
+      case 'cancelled':
+        return AppStatus.cancelled;
+      default:
+        return AppStatus.pending;
+    }
+  }
+
+  Future<void> _cancelOrder() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Order'),
+        content: const Text('Are you sure you want to cancel this order?'),
+        actions: [
+          TextButton(onPressed: () => ctx.pop(false), child: const Text('No')),
+          TextButton(
+            onPressed: () => ctx.pop(true),
+            child:
+                const Text('Yes, Cancel', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    setState(() => _isActing = true);
+    final error = await ref
+        .read(adminOrderActionsProvider)
+        .cancel(widget.bookingId);
+    if (!mounted) return;
+    setState(() => _isActing = false);
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: AppColors.error),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Order cancelled'), backgroundColor: AppColors.success),
+      );
+      ref.invalidate(adminOrderDetailProvider(widget.bookingId));
+    }
+  }
+
+  Future<void> _assignWasher() async {
+    final controller = TextEditingController();
+    final employeeId = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Assign Washer'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'Employee ID',
+            hintText: 'Enter employee user ID',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => ctx.pop(null), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => ctx.pop(controller.text.trim()),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: const Text('Assign', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (employeeId == null || employeeId.isEmpty || !mounted) return;
+    setState(() => _isActing = true);
+    final error = await ref
+        .read(adminOrderActionsProvider)
+        .assign(widget.bookingId, employeeId);
+    if (!mounted) return;
+    setState(() => _isActing = false);
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: AppColors.error),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Washer assigned'), backgroundColor: AppColors.success),
+      );
+      ref.invalidate(adminOrderDetailProvider(widget.bookingId));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final order = widget.data['order'] as Map<String, dynamic>;
+    final history = widget.data['history'] as List? ?? [];
+    final status = order['status']?.toString() ?? 'pending';
+    final appStatus = _appStatus(status);
+    final scheduledAt = order['scheduled_at'] != null
+        ? DateTime.tryParse(order['scheduled_at'].toString())
+        : null;
+    final plate = order['vehicle_plate']?.toString() ?? '—';
+    final vehicleType = order['vehicle_type']?.toString().toUpperCase() ?? '—';
+    final address = order['location_address']?.toString() ?? '—';
+    final notes = order['notes']?.toString();
+    final assignedId = order['assigned_employee_id']?.toString();
+    final shortId = order['id']?.toString() ?? widget.bookingId;
+    final displayId =
+        shortId.length > 8 ? shortId.substring(0, 8).toUpperCase() : shortId.toUpperCase();
+
+    final isCancellable = status != 'done' && status != 'cancelled';
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           _card([
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text('Booking #$bookingId', style: AppTypography.titleLarge),
-              const AppStatusIndicator(status: AppStatus.confirmed),
+              Text('Order #$displayId', style: AppTypography.titleLarge),
+              AppStatusIndicator(status: appStatus),
             ]),
             const Gap(12),
-            _info('Service', 'Standard Wash'),
-            _info('Date', 'Feb 12, 2026 • 10:00 AM'),
-            _info('Amount', 'Rp 150.000'),
-          ]),
-          const Gap(16),
-          _card([
-            Text('Customer', style: AppTypography.titleMedium),
-            const Gap(12),
-            Row(children: [
-              const CircleAvatar(radius: 20, backgroundImage: NetworkImage('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&fit=crop')),
-              const Gap(12),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Alex Johnson', style: AppTypography.bodyLarge),
-                Text('alex@email.com • +1 555-0101', style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary)),
-              ]),
-            ]),
-          ]),
-          const Gap(16),
-          _card([
-            Text('Washer', style: AppTypography.titleMedium),
-            const Gap(12),
-            Row(children: [
-              const CircleAvatar(radius: 20, backgroundImage: NetworkImage('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&fit=crop')),
-              const Gap(12),
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Marcus Rivera', style: AppTypography.bodyLarge),
-                Row(children: [const Icon(Icons.star, size: 14, color: Colors.amber), const Gap(4), Text('4.9', style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary))]),
-              ]),
-            ]),
+            if (scheduledAt != null)
+              _info(Icons.calendar_today,
+                  DateFormat('MMM dd, yyyy • HH:mm').format(scheduledAt)),
+            const Gap(6),
+            _info(Icons.location_on_outlined, address),
           ]),
           const Gap(16),
           _card([
             Text('Vehicle', style: AppTypography.titleMedium),
             const Gap(8),
-            _info('Car', '2021 Tesla Model 3'),
-            _info('Color', 'White'),
-            _info('Plate', 'ABC 1234'),
+            _labelValue('Plate', plate),
+            _labelValue('Type', vehicleType),
           ]),
           const Gap(16),
           _card([
-            Text('Location', style: AppTypography.titleMedium),
-            const Gap(8),
-            Row(children: [
-              const Icon(Icons.location_on, size: 16, color: AppColors.textSecondary),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Assigned Washer', style: AppTypography.titleMedium),
+                if (status != 'done' && status != 'cancelled')
+                  TextButton(
+                    onPressed: _isActing ? null : _assignWasher,
+                    child: Text(assignedId != null ? 'Reassign' : 'Assign'),
+                  ),
+              ],
+            ),
+            const Gap(4),
+            if (assignedId != null)
+              Row(children: [
+                const CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppColors.primaryLight,
+                  child: Icon(Icons.person, color: AppColors.primary, size: 20),
+                ),
+                const Gap(10),
+                Text(assignedId, style: AppTypography.bodyMedium),
+              ])
+            else
+              Text('Not assigned yet',
+                  style: AppTypography.bodyMedium
+                      .copyWith(color: AppColors.textSecondary)),
+          ]),
+          if (notes != null && notes.isNotEmpty) ...[
+            const Gap(16),
+            _card([
+              Text('Notes', style: AppTypography.titleMedium),
               const Gap(8),
-              Expanded(child: Text('123 Oak Street, Apt 4B, Austin, TX 78701', style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary))),
+              Text(notes, style: AppTypography.bodyMedium),
             ]),
-          ]),
+          ],
+          if (history.isNotEmpty) ...[
+            const Gap(16),
+            _card([
+              Text('Status History', style: AppTypography.titleMedium),
+              const Gap(12),
+              ...history.map((h) {
+                final hMap = h as Map<String, dynamic>;
+                final changedAt = hMap['changed_at'] != null
+                    ? DateTime.tryParse(hMap['changed_at'].toString())
+                    : null;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const Gap(12),
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              hMap['status']
+                                      ?.toString()
+                                      .replaceAll('_', ' ')
+                                      .toUpperCase() ??
+                                  '',
+                              style: AppTypography.labelSmall.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w600),
+                            ),
+                            if (changedAt != null)
+                              Text(
+                                DateFormat('MMM dd, HH:mm').format(changedAt),
+                                style: AppTypography.labelSmall
+                                    .copyWith(color: AppColors.textSecondary),
+                              ),
+                          ]),
+                    ),
+                  ]),
+                );
+              }),
+            ]),
+          ],
           const Gap(24),
-          Row(children: [
-            Expanded(child: OutlinedButton(
-              onPressed: () {},
-              style: OutlinedButton.styleFrom(foregroundColor: AppColors.error, side: const BorderSide(color: AppColors.error), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
-              child: const Text('Cancel Booking'),
-            )),
-            const Gap(12),
-            Expanded(child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
-              child: const Text('Reassign Washer'),
-            )),
-          ]),
-        ]),
+          if (isCancellable)
+            Row(children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _isActing ? null : _cancelOrder,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: const BorderSide(color: AppColors.error),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusMd)),
+                  ),
+                  child: _isActing
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: AppColors.error))
+                      : const Text('Cancel Order'),
+                ),
+              ),
+              if (assignedId == null) ...[
+                const Gap(12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _isActing ? null : _assignWasher,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusMd)),
+                    ),
+                    child: const Text('Assign Washer'),
+                  ),
+                ),
+              ],
+            ]),
+          const Gap(32),
+        ],
       ),
     );
   }
@@ -94,16 +343,36 @@ class AdminBookingDetail extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppSpacing.radiusMd), boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 2))]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 2)),
+        ],
+      ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
     );
   }
 
-  Widget _info(String label, String value) {
+  Widget _info(IconData icon, String text) {
+    return Row(children: [
+      Icon(icon, size: 16, color: AppColors.textSecondary),
+      const Gap(8),
+      Expanded(
+          child: Text(text,
+              style: AppTypography.bodyMedium
+                  .copyWith(color: AppColors.textSecondary))),
+    ]);
+  }
+
+  Widget _labelValue(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(label, style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary)),
+        Text(label,
+            style: AppTypography.bodyMedium
+                .copyWith(color: AppColors.textSecondary)),
         Text(value, style: AppTypography.bodyMedium),
       ]),
     );

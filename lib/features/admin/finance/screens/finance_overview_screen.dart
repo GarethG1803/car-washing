@@ -54,7 +54,7 @@ class FinanceOverviewScreen extends StatelessWidget {
               borderData: FlBorderData(show: false),
               barGroups: List.generate(6, (i) => BarChartGroupData(x: i, barsSpace: 4, barRods: [
                 BarChartRodData(toY: [12500, 14200, 13800, 16500, 18200, 21000][i].toDouble(), color: AppColors.primary, width: 14, borderRadius: const BorderRadius.vertical(top: Radius.circular(4))),
-                BarChartRodData(toY: [4200, 5100, 4800, 5500, 6200, 7000][i].toDouble(), color: AppColors.error.withOpacity(0.5), width: 14, borderRadius: const BorderRadius.vertical(top: Radius.circular(4))),
+                BarChartRodData(toY: [4200, 5100, 4800, 5500, 6200, 7000][i].toDouble(), color: AppColors.error.withValues(alpha: 0.5), width: 14, borderRadius: const BorderRadius.vertical(top: Radius.circular(4))),
               ])),
             )),
           ),
@@ -65,7 +65,7 @@ class FinanceOverviewScreen extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
             child: Row(children: [
-              Container(width: 40, height: 40, decoration: BoxDecoration(color: (t['isIncome'] as bool ? AppColors.success : AppColors.error).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              Container(width: 40, height: 40, decoration: BoxDecoration(color: (t['isIncome'] as bool ? AppColors.success : AppColors.error).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                 child: Icon(t['isIncome'] as bool ? Icons.arrow_downward : Icons.arrow_upward, color: t['isIncome'] as bool ? AppColors.success : AppColors.error, size: 20)),
               const Gap(12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(t['desc'] as String, style: AppTypography.bodyMedium), Text(t['date'] as String, style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary))])),

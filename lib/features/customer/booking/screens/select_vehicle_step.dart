@@ -1,20 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
-import 'package:clean_ride/data/mock/mock_vehicles.dart';
-import 'package:clean_ride/features/customer/booking/widgets/vehicle_selector.dart';
+import 'package:clean_ride/data/providers/booking_state_provider.dart';
 import 'package:gap/gap.dart';
 
-class SelectVehicleStep extends StatefulWidget {
+class SelectVehicleStep extends ConsumerStatefulWidget {
   const SelectVehicleStep({super.key});
 
   @override
-  State<SelectVehicleStep> createState() => _SelectVehicleStepState();
+  ConsumerState<SelectVehicleStep> createState() => _SelectVehicleStepState();
 }
 
-class _SelectVehicleStepState extends State<SelectVehicleStep> {
-  String _selectedVehicleId = MockVehicles.vehicles.first.id;
+class _SelectVehicleStepState extends ConsumerState<SelectVehicleStep> {
+  final _plateController = TextEditingController();
+  String _vehicleType = 'sedan';
+
+  static const _vehicleTypes = [
+    ('sedan', Icons.directions_car, 'Sedan'),
+    ('suv', Icons.directions_car_filled, 'SUV'),
+    ('truck', Icons.local_shipping, 'Truck'),
+    ('motorcycle', Icons.two_wheeler, 'Motorcycle'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final current = ref.read(bookingStateProvider);
+    _plateController.text = current.vehiclePlate;
+    _vehicleType = current.vehicleType;
+    _plateController.addListener(_sync);
+  }
+
+  void _sync() {
+    ref.read(bookingStateProvider.notifier).setVehicle(
+          _plateController.text.trim(),
+          _vehicleType,
+        );
+  }
+
+  @override
+  void dispose() {
+    _plateController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,36 +53,83 @@ class _SelectVehicleStepState extends State<SelectVehicleStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Select Your Vehicle', style: AppTypography.titleLarge),
+          Text('Your Vehicle', style: AppTypography.titleLarge),
           const Gap(4),
           Text(
-            'Choose the vehicle you want washed',
+            'Enter your vehicle details',
             style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
           ),
-          const Gap(24),
-          ...MockVehicles.vehicles.map(
-            (vehicle) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: VehicleSelector(
-                vehicle: vehicle,
-                isSelected: vehicle.id == _selectedVehicleId,
-                onTap: () => setState(() => _selectedVehicleId = vehicle.id),
+          const Gap(28),
+          Text('Vehicle Plate', style: AppTypography.titleMedium),
+          const Gap(10),
+          TextField(
+            controller: _plateController,
+            textCapitalization: TextCapitalization.characters,
+            decoration: InputDecoration(
+              hintText: 'e.g., B 1234 ABC',
+              hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+              prefixIcon: const Icon(Icons.pin, color: AppColors.textSecondary),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderSide: const BorderSide(color: AppColors.divider),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderSide: const BorderSide(color: AppColors.divider),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
               ),
             ),
           ),
-          const Gap(16),
-          OutlinedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.add),
-            label: const Text('Add New Vehicle'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              side: const BorderSide(color: AppColors.primary),
-              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              ),
-            ),
+          const Gap(28),
+          Text('Vehicle Type', style: AppTypography.titleMedium),
+          const Gap(12),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 2.2,
+            children: _vehicleTypes.map(((String key, IconData icon, String label) rec) {
+              final isSelected = _vehicleType == rec.$1;
+              return GestureDetector(
+                onTap: () {
+                  setState(() => _vehicleType = rec.$1);
+                  _sync();
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.primaryLight : Colors.white,
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                    border: Border.all(
+                      color: isSelected ? AppColors.primary : AppColors.divider,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(rec.$2,
+                          size: 22,
+                          color: isSelected ? AppColors.primary : AppColors.textSecondary),
+                      const Gap(8),
+                      Text(
+                        rec.$3,
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),

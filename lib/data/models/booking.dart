@@ -141,4 +141,45 @@ class Booking {
       'timeSlot: $timeSlot, address: $address, latitude: $latitude, '
       'longitude: $longitude, totalAmount: $totalAmount, tip: $tip, '
       'notes: $notes, createdAt: $createdAt, completedAt: $completedAt)';
+
+  factory Booking.fromApiJson(Map<String, dynamic> json) {
+    BookingStatus status;
+    switch (json['status']?.toString()) {
+      case 'confirmed':
+        status = BookingStatus.confirmed;
+      case 'on_the_way':
+        status = BookingStatus.washerEnRoute;
+      case 'in_progress':
+        status = BookingStatus.inProgress;
+      case 'done':
+        status = BookingStatus.completed;
+      case 'cancelled':
+        status = BookingStatus.cancelled;
+      default:
+        status = BookingStatus.pending;
+    }
+    final scheduledAt = json['scheduled_at'] != null
+        ? DateTime.parse(json['scheduled_at'].toString())
+        : DateTime.now();
+    return Booking(
+      id: json['id']?.toString() ?? '',
+      customerId: json['customer_id']?.toString() ?? '',
+      washerId: json['assigned_employee_id']?.toString(),
+      vehicleId: json['vehicle_plate']?.toString() ?? '',
+      servicePackageId: json['service_id']?.toString() ?? '',
+      addonIds: const [],
+      status: status,
+      scheduledDate: scheduledAt,
+      timeSlot:
+          '${scheduledAt.hour.toString().padLeft(2, '0')}:${scheduledAt.minute.toString().padLeft(2, '0')}',
+      address: json['location_address']?.toString() ?? '',
+      latitude: (json['location_lat'] as num?)?.toDouble() ?? 0.0,
+      longitude: (json['location_lng'] as num?)?.toDouble() ?? 0.0,
+      totalAmount: 0.0,
+      notes: json['notes']?.toString(),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'].toString())
+          : DateTime.now(),
+    );
+  }
 }

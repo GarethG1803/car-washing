@@ -58,7 +58,7 @@ class WalletScreen extends StatelessWidget {
               children: [
                 Container(
                   width: 40, height: 40,
-                  decoration: BoxDecoration(color: (t['isCredit'] as bool) ? AppColors.success.withOpacity(0.1) : AppColors.error.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(color: (t['isCredit'] as bool) ? AppColors.success.withValues(alpha: 0.1) : AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
                   child: Icon((t['isCredit'] as bool) ? Icons.arrow_downward : Icons.arrow_upward, color: (t['isCredit'] as bool) ? AppColors.success : AppColors.error, size: 20),
                 ),
                 const Gap(12),

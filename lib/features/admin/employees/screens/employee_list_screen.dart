@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
-import 'package:clean_ride/data/mock/mock_washers.dart';
+import 'package:clean_ride/data/providers/users_provider.dart';
 import 'package:gap/gap.dart';
 
-class EmployeeListScreen extends StatelessWidget {
+class EmployeeListScreen extends ConsumerWidget {
   const EmployeeListScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final washers = MockWashers.profiles;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final employeesAsync = ref.watch(usersProvider('employee'));
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -27,39 +28,106 @@ class EmployeeListScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView.separated(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        itemCount: washers.length,
-        separatorBuilder: (_, __) => const Gap(12),
-        itemBuilder: (context, index) {
-          final w = washers[index];
-          return GestureDetector(
-            onTap: () => context.push('/admin/team/${w.id}'),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppSpacing.radiusMd), boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 2))]),
-              child: Row(children: [
-                Stack(children: [
-                  CircleAvatar(radius: 28, backgroundColor: AppColors.primaryLight, backgroundImage: w.avatarUrl != null ? NetworkImage(w.avatarUrl!) : null, child: w.avatarUrl == null ? Text(w.name.split(' ').map((x) => x[0]).take(2).join(), style: AppTypography.titleMedium.copyWith(color: AppColors.primary)) : null),
-                  Positioned(right: 0, bottom: 0, child: Container(width: 14, height: 14, decoration: BoxDecoration(shape: BoxShape.circle, color: w.isOnline ? AppColors.success : AppColors.textSecondary, border: Border.all(color: Colors.white, width: 2)))),
-                ]),
-                const Gap(16),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(w.name, style: AppTypography.titleMedium),
-                  const Gap(2),
-                  Row(children: [const Icon(Icons.star, size: 14, color: Colors.amber), const Gap(4), Text('${w.rating} • ${w.completedJobs} jobs', style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary))]),
-                ])),
-                Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: w.isAvailable ? AppColors.success.withOpacity(0.1) : AppColors.textSecondary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                    child: Text(w.isAvailable ? 'Available' : 'Busy', style: AppTypography.labelSmall.copyWith(color: w.isAvailable ? AppColors.success : AppColors.textSecondary)),
+      body: employeesAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline,
+                  size: 48, color: AppColors.error),
+              const Gap(12),
+              Text('Could not load team',
+                  style: AppTypography.titleMedium),
+              const Gap(16),
+              TextButton(
+                onPressed: () =>
+                    ref.invalidate(usersProvider('employee')),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+        data: (employees) {
+          if (employees.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.people_outline,
+                      size: 64, color: AppColors.textSecondary),
+                  const Gap(16),
+                  Text('No employees yet',
+                      style: AppTypography.titleMedium),
+                ],
+              ),
+            );
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            itemCount: employees.length,
+            separatorBuilder: (_, __) => const Gap(12),
+            itemBuilder: (context, index) {
+              final w = employees[index];
+              final name = w['name']?.toString() ?? 'Employee';
+              final email = w['email']?.toString() ?? '';
+              final id = w['id']?.toString() ?? '';
+              final initials = name
+                  .split(' ')
+                  .map((x) => x.isNotEmpty ? x[0] : '')
+                  .take(2)
+                  .join();
+
+              return GestureDetector(
+                onTap: () => context.push('/admin/team/$id'),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.circular(AppSpacing.radiusMd),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x0A000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 2),
+                      )
+                    ],
                   ),
-                  const Gap(4),
-                  Text('Rp ${NumberFormat('#,###').format(w.earnings.toInt())}', style: AppTypography.labelSmall.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold)),
-                ]),
-              ]),
-            ),
+                  child: Row(children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: AppColors.primaryLight,
+                      child: Text(
+                        initials,
+                        style: AppTypography.titleMedium
+                            .copyWith(color: AppColors.primary),
+                      ),
+                    ),
+                    const Gap(16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(name, style: AppTypography.titleMedium),
+                          const Gap(2),
+                          Text(
+                            email,
+                            style: AppTypography.bodyMedium.copyWith(
+                                color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: AppColors.textSecondary,
+                      size: 20,
+                    ),
+                  ]),
+                ),
+              );
+            },
           );
         },
       ),

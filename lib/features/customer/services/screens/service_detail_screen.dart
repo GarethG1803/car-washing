@@ -1,225 +1,168 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
-import 'package:clean_ride/data/mock/mock_services.dart';
-import 'package:clean_ride/features/customer/services/widgets/addon_tile.dart';
+import 'package:clean_ride/data/providers/services_provider.dart';
+import 'package:clean_ride/data/providers/booking_state_provider.dart';
 import 'package:gap/gap.dart';
 
-class ServiceDetailScreen extends StatefulWidget {
+class ServiceDetailScreen extends ConsumerWidget {
   final String serviceId;
-
   const ServiceDetailScreen({super.key, required this.serviceId});
 
   @override
-  State<ServiceDetailScreen> createState() => _ServiceDetailScreenState();
-}
-
-class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
-  final Set<String> _selectedAddons = {};
-
-  @override
-  Widget build(BuildContext context) {
-    final service = MockServices.packages.firstWhere(
-      (s) => s.id == widget.serviceId,
-      orElse: () => MockServices.packages.first,
-    );
-
-    double addonTotal = MockServices.addons
-        .where((a) => _selectedAddons.contains(a.id))
-        .fold(0, (sum, a) => sum + a.price);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final serviceAsync = ref.watch(serviceDetailProvider(serviceId));
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 250,
-            pinned: true,
-            backgroundColor: AppColors.primary,
-            flexibleSpace: FlexibleSpaceBar(
-              background: service.imageUrl != null
-                  ? Image.network(
-                      service.imageUrl!,
-                      fit: BoxFit.cover,
-                    )
-                  : Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [AppColors.primary, Color(0xFF0047B3)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.local_car_wash,
-                          size: 80,
-                          color: Colors.white24,
-                        ),
-                      ),
-                    ),
+      body: serviceAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => Center(
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const Gap(12),
+            Text('Could not load service', style: AppTypography.titleMedium),
+            const Gap(16),
+            TextButton(
+              onPressed: () => ref.invalidate(serviceDetailProvider(serviceId)),
+              child: const Text('Retry'),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          ]),
+        ),
+        data: (service) {
+          if (service == null) {
+            return Center(
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Icon(Icons.search_off, size: 48, color: AppColors.textSecondary),
+                const Gap(12),
+                Text('Service not found', style: AppTypography.titleMedium),
+                const Gap(12),
+                TextButton(onPressed: () => context.pop(), child: const Text('Go Back')),
+              ]),
+            );
+          }
+          return CustomScrollView(slivers: [
+            SliverAppBar(
+              expandedHeight: 220,
+              pinned: true,
+              backgroundColor: AppColors.primary,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => context.pop(),
+              ),
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.primary, Color(0xFF0047B3)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.local_car_wash, size: 80, color: Colors.white24),
+                  ),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(service.name, style: AppTypography.headlineMedium),
                   const Gap(8),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, size: 18, color: Colors.amber),
-                      const Gap(4),
-                      Text(
-                        '${service.rating}',
-                        style: AppTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      Text(
-                        ' (120 reviews)',
-                        style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                  const Gap(8),
-                  Row(
-                    children: [
-                      Icon(Icons.access_time, size: 16, color: AppColors.textSecondary),
-                      const Gap(4),
-                      Text(
-                        '${service.duration} min',
-                        style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
-                      ),
-                      const Gap(8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          service.category.name.toUpperCase(),
-                          style: AppTypography.labelSmall.copyWith(
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                      child: Text(service.category.name.toUpperCase(),
+                          style: AppTypography.labelSmall.copyWith(color: AppColors.primary)),
+                    ),
+                  ]),
                   const Gap(16),
                   Text(
                     'Rp ${NumberFormat('#,###').format(service.price.toInt())}',
                     style: AppTypography.headlineLarge.copyWith(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        color: AppColors.primary, fontWeight: FontWeight.bold),
                   ),
-                  const Gap(24),
-                  Text('Description', style: AppTypography.titleMedium),
-                  const Gap(8),
-                  Text(
-                    service.description,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
-                      height: 1.5,
-                    ),
-                  ),
-                  const Gap(24),
-                  Text("What's Included", style: AppTypography.titleMedium),
-                  const Gap(12),
-                  ...service.features.map(
-                    (feature) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
+                  if (service.description.isNotEmpty) ...[
+                    const Gap(24),
+                    Text('Description', style: AppTypography.titleMedium),
+                    const Gap(8),
+                    Text(service.description,
+                        style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textSecondary, height: 1.5)),
+                  ],
+                  if (service.features.isNotEmpty) ...[
+                    const Gap(24),
+                    Text("What's Included", style: AppTypography.titleMedium),
+                    const Gap(12),
+                    ...service.features.map(
+                      (f) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(children: [
                           const Icon(Icons.check_circle, size: 20, color: AppColors.success),
                           const Gap(12),
-                          Expanded(
-                            child: Text(feature, style: AppTypography.bodyMedium),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const Gap(24),
-                  Text('Add-ons', style: AppTypography.titleMedium),
-                  const Gap(12),
-                  ...MockServices.addons.map(
-                    (addon) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: AddonTile(
-                        addon: addon,
-                        isSelected: _selectedAddons.contains(addon.id),
-                        onToggle: () {
-                          setState(() {
-                            if (_selectedAddons.contains(addon.id)) {
-                              _selectedAddons.remove(addon.id);
-                            } else {
-                              _selectedAddons.add(addon.id);
-                            }
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                  const Gap(100),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: AppColors.divider)),
-        ),
-        child: SafeArea(
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Total',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    Text(
-                      'Rp ${NumberFormat('#,###').format((service.price + addonTotal).toInt())}',
-                      style: AppTypography.titleLarge.copyWith(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
+                          Expanded(child: Text(f, style: AppTypography.bodyMedium)),
+                        ]),
                       ),
                     ),
                   ],
-                ),
+                  const Gap(100),
+                ]),
               ),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => context.push('/customer/booking/flow'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+            ),
+          ]);
+        },
+      ),
+      bottomNavigationBar: serviceAsync.maybeWhen(
+        data: (service) {
+          if (service == null) return null;
+          return Container(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: AppColors.divider)),
+            ),
+            child: SafeArea(
+              child: Row(children: [
+                Expanded(
+                  child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Price', style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary)),
+                    Text(
+                      'Rp ${NumberFormat('#,###').format(service.price.toInt())}',
+                      style: AppTypography.titleLarge.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
                     ),
-                  ),
-                  child: const Text('Book This Service'),
+                  ]),
                 ),
-              ),
-            ],
-          ),
-        ),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      ref.read(bookingStateProvider.notifier).setService(service.id);
+                      context.push('/customer/booking/flow');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                    ),
+                    child: const Text('Book This Service'),
+                  ),
+                ),
+              ]),
+            ),
+          );
+        },
+        orElse: () => null,
       ),
     );
   }

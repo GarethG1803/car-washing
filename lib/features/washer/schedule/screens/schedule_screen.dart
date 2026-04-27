@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
+import 'package:clean_ride/data/models/booking.dart';
+import 'package:clean_ride/data/providers/washer_jobs_provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:gap/gap.dart';
 
-class ScheduleScreen extends StatefulWidget {
+class ScheduleScreen extends ConsumerStatefulWidget {
   const ScheduleScreen({super.key});
 
   @override
-  State<ScheduleScreen> createState() => _ScheduleScreenState();
+  ConsumerState<ScheduleScreen> createState() => _ScheduleScreenState();
 }
 
-class _ScheduleScreenState extends State<ScheduleScreen> {
+class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
@@ -28,40 +31,20 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     _selectedDay = _focusedDay;
   }
 
-  // Mock scheduled jobs for the selected date
-  List<_ScheduledJob> get _scheduledJobs => [
-        const _ScheduledJob(
-          id: 'b3',
-          time: '10:00 AM - 12:00 PM',
-          serviceName: 'Premium Detail',
-          customerName: 'Sarah Chen',
-          address: '789 Elm Boulevard, Unit 7',
-        ),
-        const _ScheduledJob(
-          id: 'b4',
-          time: '1:00 PM - 2:00 PM',
-          serviceName: 'Standard Wash',
-          customerName: 'Mike Williams',
-          address: '321 Pine Lane',
-        ),
-        const _ScheduledJob(
-          id: 'b6',
-          time: '3:00 PM - 5:00 PM',
-          serviceName: 'Full Detail Package',
-          customerName: 'Alex Johnson',
-          address: '123 Oak Street, Apt 4B',
-        ),
-      ];
+  List<Booking> _jobsForDay(List<Booking> jobs, DateTime day) {
+    return jobs.where((j) => isSameDay(j.scheduledDate, day)).toList()
+      ..sort((a, b) => a.scheduledDate.compareTo(b.scheduledDate));
+  }
 
   @override
   Widget build(BuildContext context) {
+    final jobsAsync = ref.watch(washerJobsProvider);
+    final selectedDay = _selectedDay ?? _focusedDay;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(
-          'My Schedule',
-          style: AppTypography.titleLarge,
-        ),
+        title: Text('My Schedule', style: AppTypography.titleLarge),
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
@@ -70,7 +53,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Calendar Widget
             Container(
               color: AppColors.surface,
               child: TableCalendar(
@@ -78,9 +60,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 lastDay: DateTime.now().add(const Duration(days: 90)),
                 focusedDay: _focusedDay,
                 calendarFormat: _calendarFormat,
-                selectedDayPredicate: (day) {
-                  return isSameDay(_selectedDay, day);
-                },
+                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                 onDaySelected: (selectedDay, focusedDay) {
                   if (!isSameDay(_selectedDay, selectedDay)) {
                     setState(() {
@@ -91,9 +71,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 },
                 onFormatChanged: (format) {
                   if (_calendarFormat != format) {
-                    setState(() {
-                      _calendarFormat = format;
-                    });
+                    setState(() => _calendarFormat = format);
                   }
                 },
                 onPageChanged: (focusedDay) {
@@ -105,7 +83,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     shape: BoxShape.circle,
                   ),
                   todayDecoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.3),
+                    color: AppColors.primary.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                   ),
                   todayTextStyle: AppTypography.bodyMedium.copyWith(
@@ -147,22 +125,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
             const Gap(AppSpacing.lg),
 
-            // Availability Toggle Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Availability',
-                    style: AppTypography.titleMedium,
-                  ),
+                  Text('Availability', style: AppTypography.titleMedium),
                   const Gap(AppSpacing.sm),
                   Container(
                     decoration: BoxDecoration(
                       color: AppColors.surface,
-                      borderRadius:
-                          BorderRadius.circular(AppSpacing.radiusMd),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                       boxShadow: const [
                         BoxShadow(
                           color: Color(0x0A000000),
@@ -174,10 +147,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                     child: Column(
                       children: [
                         SwitchListTile(
-                          title: Text(
-                            'Morning',
-                            style: AppTypography.bodyLarge,
-                          ),
+                          title: Text('Morning', style: AppTypography.bodyLarge),
                           subtitle: Text(
                             '8:00 AM - 12:00 PM',
                             style: AppTypography.labelSmall.copyWith(
@@ -191,12 +161,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                 : AppColors.textSecondary,
                           ),
                           value: _morningAvailable,
-                          activeColor: AppColors.primary,
-                          onChanged: (value) {
-                            setState(() {
-                              _morningAvailable = value;
-                            });
-                          },
+                          activeThumbColor: AppColors.primary,
+                          onChanged: (value) =>
+                              setState(() => _morningAvailable = value),
                         ),
                         const Divider(
                           height: 1,
@@ -205,10 +172,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           endIndent: AppSpacing.lg,
                         ),
                         SwitchListTile(
-                          title: Text(
-                            'Afternoon',
-                            style: AppTypography.bodyLarge,
-                          ),
+                          title: Text('Afternoon', style: AppTypography.bodyLarge),
                           subtitle: Text(
                             '12:00 PM - 5:00 PM',
                             style: AppTypography.labelSmall.copyWith(
@@ -222,12 +186,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                 : AppColors.textSecondary,
                           ),
                           value: _afternoonAvailable,
-                          activeColor: AppColors.primary,
-                          onChanged: (value) {
-                            setState(() {
-                              _afternoonAvailable = value;
-                            });
-                          },
+                          activeThumbColor: AppColors.primary,
+                          onChanged: (value) =>
+                              setState(() => _afternoonAvailable = value),
                         ),
                         const Divider(
                           height: 1,
@@ -236,10 +197,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                           endIndent: AppSpacing.lg,
                         ),
                         SwitchListTile(
-                          title: Text(
-                            'Evening',
-                            style: AppTypography.bodyLarge,
-                          ),
+                          title: Text('Evening', style: AppTypography.bodyLarge),
                           subtitle: Text(
                             '5:00 PM - 9:00 PM',
                             style: AppTypography.labelSmall.copyWith(
@@ -253,12 +211,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                                 : AppColors.textSecondary,
                           ),
                           value: _eveningAvailable,
-                          activeColor: AppColors.primary,
-                          onChanged: (value) {
-                            setState(() {
-                              _eveningAvailable = value;
-                            });
-                          },
+                          activeThumbColor: AppColors.primary,
+                          onChanged: (value) =>
+                              setState(() => _eveningAvailable = value),
                         ),
                       ],
                     ),
@@ -268,124 +223,136 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
             const Gap(AppSpacing.xl),
 
-            // Scheduled Jobs for selected date
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Scheduled Jobs',
-                    style: AppTypography.titleMedium,
-                  ),
+                  Text('Scheduled Jobs', style: AppTypography.titleMedium),
                   const Gap(AppSpacing.md),
-                  ..._scheduledJobs.map((job) => Padding(
-                        padding:
-                            const EdgeInsets.only(bottom: AppSpacing.md),
-                        child: GestureDetector(
-                          onTap: () =>
-                              context.push('/washer/jobs/${job.id}'),
-                          child: Container(
-                            padding:
-                                const EdgeInsets.all(AppSpacing.lg),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(
-                                  AppSpacing.radiusMd),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x0A000000),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
+                  jobsAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (_, __) => Center(
+                      child: Text(
+                        'Could not load jobs',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    data: (jobs) {
+                      final dayJobs = _jobsForDay(jobs, selectedDay);
+                      if (dayJobs.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 32),
+                          child: Center(
+                            child: Column(
                               children: [
-                                Container(
-                                  width: 4,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    borderRadius:
-                                        BorderRadius.circular(2),
-                                  ),
+                                const Icon(
+                                  Icons.event_available_outlined,
+                                  size: 48,
+                                  color: AppColors.textSecondary,
                                 ),
-                                const Gap(AppSpacing.md),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        job.serviceName,
-                                        style:
-                                            AppTypography.titleMedium,
-                                      ),
-                                      const Gap(2),
-                                      Text(
-                                        job.customerName,
-                                        style: AppTypography.bodyMedium
-                                            .copyWith(
-                                          color:
-                                              AppColors.textSecondary,
-                                        ),
-                                      ),
-                                      const Gap(2),
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.location_on_outlined,
-                                            size: 12,
-                                            color:
-                                                AppColors.textSecondary,
-                                          ),
-                                          const Gap(4),
-                                          Expanded(
-                                            child: Text(
-                                              job.address,
-                                              style: AppTypography
-                                                  .labelSmall
-                                                  .copyWith(
-                                                color: AppColors
-                                                    .textSecondary,
-                                              ),
-                                              maxLines: 1,
-                                              overflow:
-                                                  TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Gap(AppSpacing.md),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.md,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primaryLight,
-                                    borderRadius:
-                                        BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    job.time,
-                                    style: AppTypography.labelSmall
-                                        .copyWith(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 10,
-                                    ),
+                                const Gap(12),
+                                Text(
+                                  'No jobs scheduled',
+                                  style: AppTypography.bodyMedium.copyWith(
+                                    color: AppColors.textSecondary,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ),
-                      )),
+                        );
+                      }
+                      return Column(
+                        children: dayJobs.map((job) {
+                          final timeStr =
+                              '${job.scheduledDate.hour.toString().padLeft(2, '0')}:${job.scheduledDate.minute.toString().padLeft(2, '0')}';
+                          return Padding(
+                            padding:
+                                const EdgeInsets.only(bottom: AppSpacing.md),
+                            child: GestureDetector(
+                              onTap: () =>
+                                  context.push('/washer/jobs/${job.id}'),
+                              child: Container(
+                                padding: const EdgeInsets.all(AppSpacing.lg),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(
+                                      AppSpacing.radiusMd),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Color(0x0A000000),
+                                      blurRadius: 10,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 4,
+                                      height: 50,
+                                      decoration: BoxDecoration(
+                                        color: _statusColor(job.status),
+                                        borderRadius:
+                                            BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                    const Gap(AppSpacing.md),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            job.vehicleId,
+                                            style: AppTypography.titleMedium,
+                                          ),
+                                          const Gap(2),
+                                          Text(
+                                            job.address,
+                                            style: AppTypography.bodyMedium
+                                                .copyWith(
+                                              color: AppColors.textSecondary,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Gap(AppSpacing.md),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.md,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primaryLight,
+                                        borderRadius:
+                                            BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        timeStr,
+                                        style:
+                                            AppTypography.labelSmall.copyWith(
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -395,20 +362,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ),
     );
   }
-}
 
-class _ScheduledJob {
-  final String id;
-  final String time;
-  final String serviceName;
-  final String customerName;
-  final String address;
-
-  const _ScheduledJob({
-    required this.id,
-    required this.time,
-    required this.serviceName,
-    required this.customerName,
-    required this.address,
-  });
+  Color _statusColor(BookingStatus status) {
+    switch (status) {
+      case BookingStatus.inProgress:
+        return AppColors.warning;
+      case BookingStatus.completed:
+        return AppColors.success;
+      case BookingStatus.cancelled:
+        return AppColors.error;
+      default:
+        return AppColors.primary;
+    }
+  }
 }

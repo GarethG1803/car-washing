@@ -42,7 +42,7 @@ class ServicePackageCard extends StatelessWidget {
                     gradient: LinearGradient(
                       colors: [
                         AppColors.primaryLight,
-                        AppColors.primary.withOpacity(0.1),
+                        AppColors.primary.withValues(alpha: 0.1),
                       ],
                     ),
                     image: service.imageUrl != null
@@ -56,7 +56,7 @@ class ServicePackageCard extends StatelessWidget {
                       ? Icon(
                           Icons.local_car_wash,
                           size: 48,
-                          color: AppColors.primary.withOpacity(0.5),
+                          color: AppColors.primary.withValues(alpha: 0.5),
                         )
                       : null,
                 ),

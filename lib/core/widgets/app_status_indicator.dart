@@ -31,15 +31,15 @@ class AppStatusIndicator extends StatelessWidget {
   Color get _backgroundColor {
     switch (status) {
       case AppStatus.pending:
-        return AppColors.warning.withOpacity(0.1);
+        return AppColors.warning.withValues(alpha: 0.1);
       case AppStatus.confirmed:
-        return AppColors.primary.withOpacity(0.1);
+        return AppColors.primary.withValues(alpha: 0.1);
       case AppStatus.inProgress:
         return AppColors.primary;
       case AppStatus.completed:
-        return AppColors.success.withOpacity(0.1);
+        return AppColors.success.withValues(alpha: 0.1);
       case AppStatus.cancelled:
-        return AppColors.error.withOpacity(0.1);
+        return AppColors.error.withValues(alpha: 0.1);
     }
   }
 

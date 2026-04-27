@@ -14,7 +14,7 @@ class TrackingMap extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.map_outlined, size: 64, color: AppColors.primary.withOpacity(0.4)),
+            Icon(Icons.map_outlined, size: 64, color: AppColors.primary.withValues(alpha: 0.4)),
             const SizedBox(height: 8),
             Text(
               'Live Map View',

@@ -40,7 +40,7 @@ class InventoryManagementScreen extends StatelessWidget {
           child: Row(children: [
             Container(
               width: 44, height: 44,
-              decoration: BoxDecoration(color: _statusColor(item.status).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: _statusColor(item.status).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
               child: Icon(Icons.inventory_2_outlined, color: _statusColor(item.status), size: 22),
             ),
             const Gap(12),
@@ -51,7 +51,7 @@ class InventoryManagementScreen extends StatelessWidget {
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: _statusColor(item.status).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: _statusColor(item.status).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                 child: Text(_statusLabel(item.status), style: AppTypography.labelSmall.copyWith(color: _statusColor(item.status), fontSize: 10)),
               ),
               const Gap(4),
@@ -69,7 +69,7 @@ class InventoryManagementScreen extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppSpacing.radiusMd), boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 2))]),
       child: Row(children: [
-        Container(width: 44, height: 44, decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: color)),
+        Container(width: 44, height: 44, decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: color)),
         const Gap(12),
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(value, style: AppTypography.titleLarge.copyWith(fontWeight: FontWeight.bold)), Text(label, style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary))]),
       ]),

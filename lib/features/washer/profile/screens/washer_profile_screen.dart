@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
-import 'package:clean_ride/core/widgets/app_rating_bar.dart';
+import 'package:clean_ride/features/auth/providers/auth_provider.dart';
+import 'package:clean_ride/data/providers/washer_jobs_provider.dart';
 import 'package:gap/gap.dart';
 
-class WasherProfileScreen extends StatelessWidget {
+class WasherProfileScreen extends ConsumerWidget {
   const WasherProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+    final jobsAsync = ref.watch(washerJobsProvider);
+    final totalJobs = jobsAsync.valueOrNull?.length ?? 0;
+    final completedJobs = jobsAsync.valueOrNull?.where((j) => j.status == 'done').length ?? 0;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
@@ -37,9 +43,10 @@ class WasherProfileScreen extends StatelessWidget {
                       // Avatar
                       Stack(
                         children: [
-                          const CircleAvatar(
+                          CircleAvatar(
                             radius: 44,
-                            backgroundImage: NetworkImage('https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&fit=crop'),
+                            backgroundColor: AppColors.primary.withValues(alpha: 0.3),
+                            child: const Icon(Icons.person, size: 44, color: Colors.white),
                           ),
                           // Online status dot
                           Positioned(
@@ -62,7 +69,7 @@ class WasherProfileScreen extends StatelessWidget {
                       ),
                       const Gap(12),
                       Text(
-                        'Marcus Rivera',
+                        user?.name ?? 'Washer',
                         style: AppTypography.titleLarge.copyWith(
                           color: Colors.white,
                         ),
@@ -103,7 +110,7 @@ class WasherProfileScreen extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.success.withOpacity(0.2),
+                          color: AppColors.success.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -130,15 +137,15 @@ class WasherProfileScreen extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: _buildStatCard('Total Jobs', '245'),
+                        child: _buildStatCard('Total Jobs', '$totalJobs'),
                       ),
                       const Gap(AppSpacing.md),
                       Expanded(
-                        child: _buildStatCard('Completed', '238'),
+                        child: _buildStatCard('Completed', '$completedJobs'),
                       ),
                       const Gap(AppSpacing.md),
                       Expanded(
-                        child: _buildStatCard('Rating', '4.9'),
+                        child: _buildStatCard('Member', user?.role ?? '-'),
                       ),
                     ],
                   ),
@@ -167,7 +174,7 @@ class WasherProfileScreen extends StatelessWidget {
                                 color: AppColors.primaryLight,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: AppColors.primary.withOpacity(0.3),
+                                  color: AppColors.primary.withValues(alpha: 0.3),
                                 ),
                               ),
                               child: Text(

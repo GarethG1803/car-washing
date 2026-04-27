@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
-import 'package:clean_ride/core/widgets/app_stat_card.dart';
-import 'package:clean_ride/data/mock/mock_analytics.dart';
 import 'package:clean_ride/features/admin/dashboard/widgets/kpi_row.dart';
 import 'package:clean_ride/features/admin/dashboard/widgets/revenue_chart.dart';
 import 'package:clean_ride/features/admin/dashboard/widgets/bookings_chart.dart';

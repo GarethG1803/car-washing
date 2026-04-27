@@ -6,6 +6,7 @@ import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
 import 'package:clean_ride/core/widgets/app_button.dart';
 import 'package:clean_ride/core/widgets/app_input.dart';
+import 'package:clean_ride/data/models/user.dart';
 import 'package:clean_ride/features/auth/providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -38,7 +39,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         );
       } else if (next is AsyncData && previous != null && previous.isLoading) {
-        context.go('/role-select');
+        final user = ref.read(currentUserProvider);
+        if (user == null) return;
+        switch (user.role) {
+          case UserRole.customer:
+            context.go('/customer/home');
+          case UserRole.washer:
+            context.go('/washer/dashboard');
+          case UserRole.admin:
+            context.go('/admin/dashboard');
+        }
       }
     });
 

@@ -4,24 +4,32 @@ import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:gap/gap.dart';
 
 class StatusTimeline extends StatelessWidget {
-  const StatusTimeline({super.key});
+  final String currentStatus;
+  const StatusTimeline({super.key, required this.currentStatus});
+
+  static const _steps = [
+    ('pending', 'Booking Received'),
+    ('confirmed', 'Booking Confirmed'),
+    ('on_the_way', 'Washer En Route'),
+    ('in_progress', 'Wash In Progress'),
+    ('done', 'Completed'),
+  ];
+
+  int get _currentIndex {
+    for (var i = 0; i < _steps.length; i++) {
+      if (_steps[i].$1 == currentStatus) return i;
+    }
+    return 0;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final steps = [
-      {'title': 'Booking Confirmed', 'subtitle': '10:30 AM', 'done': true},
-      {'title': 'Washer Assigned', 'subtitle': '10:32 AM', 'done': true},
-      {'title': 'Washer En Route', 'subtitle': '10:45 AM', 'done': true},
-      {'title': 'Wash In Progress', 'subtitle': 'Arriving soon...', 'done': false},
-      {'title': 'Completed', 'subtitle': '', 'done': false},
-    ];
-
+    final current = _currentIndex;
     return Column(
-      children: List.generate(steps.length, (index) {
-        final step = steps[index];
-        final isDone = step['done'] as bool;
-        final isLast = index == steps.length - 1;
-        final isCurrent = isDone && index < steps.length - 1 && !(steps[index + 1]['done'] as bool);
+      children: List.generate(_steps.length, (index) {
+        final isDone = index <= current;
+        final isCurrent = index == current;
+        final isLast = index == _steps.length - 1;
 
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,24 +65,15 @@ class StatusTimeline extends StatelessWidget {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      step['title'] as String,
-                      style: AppTypography.bodyLarge.copyWith(
-                        fontWeight: isDone ? FontWeight.w600 : FontWeight.w400,
-                        color: isDone ? AppColors.textPrimary : AppColors.textSecondary,
-                      ),
-                    ),
-                    if ((step['subtitle'] as String).isNotEmpty)
-                      Text(
-                        step['subtitle'] as String,
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                  ],
+                child: Text(
+                  _steps[index].$2,
+                  style: AppTypography.bodyLarge.copyWith(
+                    fontWeight:
+                        isDone ? FontWeight.w600 : FontWeight.w400,
+                    color: isDone
+                        ? AppColors.textPrimary
+                        : AppColors.textSecondary,
+                  ),
                 ),
               ),
             ),

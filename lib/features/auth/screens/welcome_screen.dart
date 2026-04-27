@@ -16,7 +16,6 @@ class WelcomeScreen extends ConsumerStatefulWidget {
 
 class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   final PageController _pageController = PageController();
-  int _currentPage = 0;
 
   static const List<_OnboardingPage> _pages = [
     _OnboardingPage(
@@ -79,9 +78,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                 child: PageView.builder(
                   controller: _pageController,
                   itemCount: _pages.length,
-                  onPageChanged: (index) {
-                    setState(() => _currentPage = index);
-                  },
+                  onPageChanged: (_) {},
                   itemBuilder: (context, index) {
                     final page = _pages[index];
                     return _OnboardingPageView(page: page);
@@ -196,7 +193,7 @@ class _OnboardingPageView extends StatelessWidget {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: page.color.withOpacity(0.1),
+                color: page.color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(

@@ -30,7 +30,7 @@ class InvoiceScreen extends StatelessWidget {
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: (inv['statusColor'] as Color).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: (inv['statusColor'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                 child: Text(inv['status'] as String, style: AppTypography.labelSmall.copyWith(color: inv['statusColor'] as Color)),
               ),
             ]),

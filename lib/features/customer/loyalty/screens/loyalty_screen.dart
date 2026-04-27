@@ -43,7 +43,7 @@ class LoyaltyScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -190,7 +190,7 @@ class LoyaltyScreen extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: iconColor.withOpacity(0.1),
+          color: iconColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
         ),
         child: Icon(icon, color: iconColor, size: 22),
@@ -210,7 +210,7 @@ class LoyaltyScreen extends StatelessWidget {
         color: redeemable ? AppColors.primaryLight : AppColors.background,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
         border: Border.all(
-          color: redeemable ? AppColors.primary.withOpacity(0.3) : AppColors.divider,
+          color: redeemable ? AppColors.primary.withValues(alpha: 0.3) : AppColors.divider,
         ),
       ),
       child: Row(
