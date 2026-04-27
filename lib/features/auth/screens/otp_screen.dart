@@ -9,8 +9,15 @@ import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
 import 'package:clean_ride/core/widgets/app_button.dart';
 
+import 'package:clean_ride/features/auth/providers/auth_provider.dart';
+
 class OtpScreen extends ConsumerStatefulWidget {
-  const OtpScreen({super.key});
+  final Map<String, dynamic> registrationData;
+
+  const OtpScreen({
+    super.key,
+    this.registrationData = const {},
+  });
 
   @override
   ConsumerState<OtpScreen> createState() => _OtpScreenState();
@@ -77,8 +84,24 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   void _onVerify() {
     final otp = _controllers.map((c) => c.text).join();
-    if (otp.length == 4) {
-      context.go('/role-select');
+    if (otp == '1234') {
+      if (widget.registrationData.isNotEmpty) {
+        ref.read(authNotifierProvider.notifier).register(
+              widget.registrationData['name'],
+              widget.registrationData['email'],
+              widget.registrationData['password'],
+              widget.registrationData['phone'],
+            );
+      } else {
+        context.go('/role-select');
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid code. Please use 1234.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
   }
 
@@ -98,6 +121,21 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(authNotifierProvider, (previous, next) {
+      if (next is AsyncError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.error.toString()),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      } else if (next is AsyncData && previous != null && previous.isLoading) {
+        context.go('/role-select');
+      }
+    });
+
+    final authState = ref.watch(authNotifierProvider);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -190,7 +228,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
               // Verify button
               AppButton(
                 label: 'Verify',
-                onPressed: _onVerify,
+                isLoading: authState.isLoading,
+                onPressed: authState.isLoading ? null : _onVerify,
               ),
 
               const SizedBox(height: AppSpacing.lg),

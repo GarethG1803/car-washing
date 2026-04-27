@@ -40,7 +40,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   void _onCreateAccount() {
     if (_formKey.currentState?.validate() ?? false) {
-      context.go('/otp');
+      context.push('/otp', extra: {
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'password': _passwordController.text,
+      });
     }
   }
 

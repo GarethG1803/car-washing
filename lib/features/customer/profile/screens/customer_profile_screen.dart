@@ -4,12 +4,16 @@ import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
 import 'package:gap/gap.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:clean_ride/features/auth/providers/auth_provider.dart';
 
-class CustomerProfileScreen extends StatelessWidget {
+class CustomerProfileScreen extends ConsumerWidget {
   const CustomerProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
@@ -26,8 +30,8 @@ class CustomerProfileScreen extends StatelessWidget {
                     const Gap(20),
                     const CircleAvatar(radius: 40, backgroundImage: NetworkImage('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&fit=crop')),
                     const Gap(12),
-                    Text('Alex Johnson', style: AppTypography.titleLarge.copyWith(color: Colors.white)),
-                    Text('alex@email.com', style: AppTypography.bodyMedium.copyWith(color: Colors.white70)),
+                    Text(user?.name ?? 'Guest', style: AppTypography.titleLarge.copyWith(color: Colors.white)),
+                    Text(user?.email ?? '', style: AppTypography.bodyMedium.copyWith(color: Colors.white70)),
                   ]),
                 ),
               ),

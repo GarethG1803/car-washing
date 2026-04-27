@@ -5,12 +5,16 @@ import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
 import 'package:clean_ride/core/widgets/app_rating_bar.dart';
 import 'package:gap/gap.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:clean_ride/features/auth/providers/auth_provider.dart';
 
-class WasherProfileScreen extends StatelessWidget {
+class WasherProfileScreen extends ConsumerWidget {
   const WasherProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
@@ -62,7 +66,7 @@ class WasherProfileScreen extends StatelessWidget {
                       ),
                       const Gap(12),
                       Text(
-                        'Marcus Rivera',
+                        user?.name ?? 'Marcus Rivera',
                         style: AppTypography.titleLarge.copyWith(
                           color: Colors.white,
                         ),

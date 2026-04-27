@@ -49,6 +49,35 @@ class AuthNotifier extends AsyncNotifier<void> {
       state = AsyncValue.error(e.toString(), st);
     }
   }
+
+  Future<void> register(String name, String email, String password, String phone) async {
+    state = const AsyncValue.loading();
+    try {
+      final dio = ref.read(apiClientProvider);
+      final response = await dio.post('/auth/register', data: {
+        'name': name,
+        'email': email,
+        'password': password,
+        'phone': phone,
+        'role': 'customer',
+      });
+
+      if (response.data['success'] == true) {
+        // Automatically login after successful registration
+        await login(email, password);
+      } else {
+        state = AsyncValue.error(
+          response.data['message'] ?? 'Registration failed',
+          StackTrace.current,
+        );
+      }
+    } on DioException catch (e) {
+      final errorMessage = e.response?.data?['message'] ?? e.message ?? 'Network error';
+      state = AsyncValue.error(errorMessage, StackTrace.current);
+    } catch (e, st) {
+      state = AsyncValue.error(e.toString(), st);
+    }
+  }
 }
 
 final authNotifierProvider = AsyncNotifierProvider<AuthNotifier, void>(() => AuthNotifier());
