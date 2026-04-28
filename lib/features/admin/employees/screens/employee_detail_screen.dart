@@ -106,48 +106,6 @@ class EmployeeDetailScreen extends ConsumerWidget {
                       ),
                   ]),
                   const Gap(16),
-                  _card('Documents', [
-                    _docRow('ID Verification', true),
-                    _docRow('Driver\'s License', true),
-                    _docRow('Background Check', true),
-                    _docRow('Insurance', false),
-                  ]),
-                  const Gap(24),
-                  Row(children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.error,
-                          side: const BorderSide(color: AppColors.error),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                AppSpacing.radiusMd),
-                          ),
-                        ),
-                        child: const Text('Deactivate'),
-                      ),
-                    ),
-                    const Gap(12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                AppSpacing.radiusMd),
-                          ),
-                        ),
-                        child: const Text('Edit Profile'),
-                      ),
-                    ),
-                  ]),
                   const Gap(32),
                 ]),
               ),
@@ -190,22 +148,4 @@ class EmployeeDetailScreen extends ConsumerWidget {
         ]),
       );
 
-  Widget _docRow(String name, bool verified) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(children: [
-          Icon(
-            verified ? Icons.check_circle : Icons.pending,
-            size: 18,
-            color: verified ? AppColors.success : AppColors.warning,
-          ),
-          const Gap(12),
-          Expanded(child: Text(name, style: AppTypography.bodyMedium)),
-          Text(
-            verified ? 'Verified' : 'Pending',
-            style: AppTypography.labelSmall.copyWith(
-              color: verified ? AppColors.success : AppColors.warning,
-            ),
-          ),
-        ]),
-      );
 }

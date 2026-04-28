@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
+import 'package:clean_ride/data/models/service_package.dart';
 import 'package:clean_ride/data/providers/services_provider.dart';
 import 'package:clean_ride/data/providers/booking_state_provider.dart';
 import 'package:gap/gap.dart';
@@ -11,11 +12,28 @@ import 'package:gap/gap.dart';
 class SelectServiceStep extends ConsumerWidget {
   const SelectServiceStep({super.key});
 
+  static ServiceCategory _categoryForVehicle(String vehicleType) {
+    switch (vehicleType) {
+      case 'suv':
+        return ServiceCategory.premium;
+      case 'truck':
+        return ServiceCategory.deluxe;
+      case 'motorcycle':
+        return ServiceCategory.addon;
+      default:
+        return ServiceCategory.basic;
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final servicesAsync = ref.watch(servicesProvider);
     final bookingState = ref.watch(bookingStateProvider);
     final selectedId = bookingState.serviceId;
+    final vehicleType = bookingState.vehicleType;
+    final targetCategory = _categoryForVehicle(vehicleType);
+    final vehicleLabel =
+        vehicleType[0].toUpperCase() + vehicleType.substring(1);
 
     return servicesAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -31,94 +49,133 @@ class SelectServiceStep extends ConsumerWidget {
           ),
         ]),
       ),
-      data: (services) => SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Select Service', style: AppTypography.titleLarge),
-            const Gap(4),
-            Text(
-              'Choose your wash package',
-              style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
-            ),
-            const Gap(20),
-            ...services.map((service) {
-              final isSelected = service.id == selectedId;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: GestureDetector(
-                  onTap: () =>
-                      ref.read(bookingStateProvider.notifier).setService(service.id),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                      border: Border.all(
-                        color: isSelected ? AppColors.primary : AppColors.divider,
-                        width: isSelected ? 2 : 1,
-                      ),
-                    ),
-                    child: Row(
+      data: (services) {
+        final filtered =
+            services.where((s) => s.category == targetCategory).toList();
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Select Service', style: AppTypography.titleLarge),
+              const Gap(4),
+              Text(
+                'Packages available for $vehicleLabel',
+                style: AppTypography.bodyMedium
+                    .copyWith(color: AppColors.textSecondary),
+              ),
+              const Gap(20),
+              if (filtered.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 48),
+                    child: Column(
                       children: [
-                        Container(
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isSelected ? AppColors.primary : Colors.transparent,
-                            border: Border.all(
-                              color: isSelected ? AppColors.primary : AppColors.divider,
-                              width: 2,
-                            ),
-                          ),
-                          child: isSelected
-                              ? const Icon(Icons.check, size: 14, color: Colors.white)
-                              : null,
-                        ),
-                        const Gap(12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(service.name, style: AppTypography.titleMedium),
-                              const Gap(4),
-                              Text(
-                                '${service.duration} min • ${service.features.length} services included',
-                                style: AppTypography.bodyMedium.copyWith(
-                                    color: AppColors.textSecondary),
-                              ),
-                              if (service.description.isNotEmpty) ...[
-                                const Gap(2),
-                                Text(
-                                  service.description,
-                                  style: AppTypography.labelSmall.copyWith(
-                                      color: AppColors.textSecondary),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
+                        const Icon(Icons.local_car_wash_outlined,
+                            size: 56, color: AppColors.textSecondary),
+                        const Gap(16),
+                        Text('No services for $vehicleLabel',
+                            style: AppTypography.titleMedium),
                         const Gap(8),
                         Text(
-                          'Rp ${NumberFormat('#,###').format(service.price.toInt())}',
-                          style: AppTypography.titleMedium.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          'Ask the admin to add services\nfor this vehicle type.',
+                          style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.textSecondary),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
                   ),
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
+                )
+              else
+                ...filtered.map((service) {
+                  final isSelected = service.id == selectedId;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GestureDetector(
+                      onTap: () => ref
+                          .read(bookingStateProvider.notifier)
+                          .setService(service.id),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusMd),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primary
+                                : AppColors.divider,
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : Colors.transparent,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.divider,
+                                  width: 2,
+                                ),
+                              ),
+                              child: isSelected
+                                  ? const Icon(Icons.check,
+                                      size: 14, color: Colors.white)
+                                  : null,
+                            ),
+                            const Gap(12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(service.name,
+                                      style: AppTypography.titleMedium),
+                                  const Gap(4),
+                                  Text(
+                                    '${service.duration} min',
+                                    style: AppTypography.bodyMedium.copyWith(
+                                        color: AppColors.textSecondary),
+                                  ),
+                                  if (service.description.isNotEmpty) ...[
+                                    const Gap(2),
+                                    Text(
+                                      service.description,
+                                      style: AppTypography.labelSmall.copyWith(
+                                          color: AppColors.textSecondary),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const Gap(8),
+                            Text(
+                              'Rp ${NumberFormat('#,###').format(service.price.toInt())}',
+                              style: AppTypography.titleMedium.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -1,14 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:clean_ride/data/models/user.dart';
-
 // Auth screens
 import 'package:clean_ride/features/auth/screens/welcome_screen.dart';
 import 'package:clean_ride/features/auth/screens/login_screen.dart';
 import 'package:clean_ride/features/auth/screens/register_screen.dart';
-import 'package:clean_ride/features/auth/screens/role_select_screen.dart';
-
 // Customer shell
 import 'package:clean_ride/features/customer/shell/customer_shell.dart';
 
@@ -61,9 +57,7 @@ import 'package:clean_ride/features/admin/employees/screens/payroll_screen.dart'
 import 'package:clean_ride/features/admin/services/screens/service_management_screen.dart';
 import 'package:clean_ride/features/admin/analytics/screens/analytics_screen.dart';
 import 'package:clean_ride/features/admin/promotions/screens/promotions_screen.dart';
-
-/// Tracks the currently selected user role.
-final roleProvider = StateProvider<UserRole?>((ref) => null);
+import 'package:clean_ride/features/admin/inventory/screens/inventory_management_screen.dart';
 
 /// Provides the app-wide GoRouter instance.
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -82,10 +76,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterScreen(),
-      ),
-      GoRoute(
-        path: '/role-select',
-        builder: (context, state) => const RoleSelectScreen(),
       ),
 
       // ── Customer shell ───────────────────────────────────────────────
@@ -364,6 +354,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/promotions',
         builder: (context, state) => const PromotionsScreen(),
+      ),
+      GoRoute(
+        path: '/admin/inventory-mgmt',
+        builder: (context, state) => const InventoryManagementScreen(),
       ),
     ],
   );

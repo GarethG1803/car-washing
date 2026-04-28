@@ -9,8 +9,6 @@ final isAuthenticatedProvider = Provider<bool>(
   (ref) => ref.watch(currentUserProvider) != null,
 );
 
-final selectedRoleProvider = StateProvider<UserRole?>((ref) => null);
-
 class AuthNotifier extends AsyncNotifier<void> {
   @override
   Future<void> build() async {}

@@ -17,7 +17,7 @@ class SelectDatetimeStep extends ConsumerStatefulWidget {
 
 class _SelectDatetimeStepState extends ConsumerState<SelectDatetimeStep> {
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
-  String _selectedTime = '09:00 AM';
+  String _selectedTime = '9:00 AM';
 
   List<DateTime> get _availableDates =>
       List.generate(14, (i) => DateTime.now().add(Duration(days: i)));

@@ -70,11 +70,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
-              Text(
-                'Welcome Back',
-                style: AppTypography.headlineLarge,
-              ),
+              Text('Welcome Back', style: AppTypography.headlineLarge),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Sign in to your account',
@@ -82,10 +78,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   color: AppColors.textSecondary,
                 ),
               ),
-
               const SizedBox(height: AppSpacing.xxl),
-
-              // Email field
               AppInput(
                 label: 'Email address',
                 hint: 'Enter your email',
@@ -93,10 +86,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 keyboardType: TextInputType.emailAddress,
                 prefixIcon: Icons.email_outlined,
               ),
-
               const SizedBox(height: AppSpacing.lg),
-
-              // Password field
               AppInput(
                 label: 'Password',
                 hint: 'Enter your password',
@@ -116,93 +106,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   },
                 ),
               ),
-
-              const SizedBox(height: AppSpacing.sm),
-
-              // Forgot password
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    // TODO: navigate to forgot password screen
-                  },
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    'Forgot Password?',
-                    style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ),
-
               const SizedBox(height: AppSpacing.xl),
-
-              // Sign In button
               AppButton(
                 label: 'Sign In',
                 isLoading: authState.isLoading,
-                onPressed: authState.isLoading ? null : () {
-                  final email = _emailController.text.trim();
-                  final password = _passwordController.text;
-                  if (email.isNotEmpty && password.isNotEmpty) {
-                    ref.read(authNotifierProvider.notifier).login(email, password);
-                  }
-                },
+                onPressed: authState.isLoading
+                    ? null
+                    : () {
+                        final email = _emailController.text.trim();
+                        final password = _passwordController.text;
+                        if (email.isNotEmpty && password.isNotEmpty) {
+                          ref
+                              .read(authNotifierProvider.notifier)
+                              .login(email, password);
+                        }
+                      },
               ),
-
-              const SizedBox(height: AppSpacing.lg),
-
-              // Divider with OR
-              Row(
-                children: [
-                  const Expanded(child: Divider(color: AppColors.divider)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                    ),
-                    child: Text(
-                      'OR',
-                      style: AppTypography.labelSmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                  const Expanded(child: Divider(color: AppColors.divider)),
-                ],
-              ),
-
-              const SizedBox(height: AppSpacing.lg),
-
-              // Social login buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Google
-                  _SocialIconButton(
-                    icon: Icons.g_mobiledata,
-                    onTap: () {
-                      // TODO: Google sign-in
-                    },
-                  ),
-                  const SizedBox(width: AppSpacing.lg),
-                  // Apple
-                  _SocialIconButton(
-                    icon: Icons.apple,
-                    onTap: () {
-                      // TODO: Apple sign-in
-                    },
-                  ),
-                ],
-              ),
-
               const SizedBox(height: AppSpacing.xxl),
-
-              // Don't have an account
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -225,42 +145,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Social icon button (outlined circle)
-// ---------------------------------------------------------------------------
-
-class _SocialIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  const _SocialIconButton({
-    required this.icon,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-      child: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.divider, width: 1.5),
-          color: AppColors.surface,
-        ),
-        child: Icon(
-          icon,
-          size: 28,
-          color: AppColors.textPrimary,
         ),
       ),
     );

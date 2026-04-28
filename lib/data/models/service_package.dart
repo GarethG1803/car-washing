@@ -109,8 +109,9 @@ class ServicePackage {
       name: json['name']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      duration: 60,
+      duration: (json['duration'] as int?) ?? 60,
       category: category,
+      imageUrl: json['image_url']?.toString(),
       features: [
         if (vehicleType.isNotEmpty) 'For: ${vehicleType[0].toUpperCase()}${vehicleType.substring(1)}',
       ],

@@ -61,17 +61,10 @@ class _RateServiceScreenState extends State<RateServiceScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Premium Detail Wash', style: AppTypography.titleMedium),
+                      Text('Car Wash Service', style: AppTypography.titleMedium),
                       const Gap(4),
                       Text(
                         'Booking #${widget.bookingId}',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const Gap(2),
-                      Text(
-                        'Marcus Rivera',
                         style: AppTypography.bodyMedium.copyWith(
                           color: AppColors.textSecondary,
                         ),

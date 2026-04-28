@@ -29,10 +29,7 @@ class AdminDashboardScreen extends StatelessWidget {
                 Text('CleanRide', style: AppTypography.headlineMedium.copyWith(color: AppColors.primary)),
               ],
             ),
-            actions: [
-              IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
-              const Gap(8),
-            ],
+            actions: const [Gap(8)],
           ),
           SliverToBoxAdapter(
             child: Padding(

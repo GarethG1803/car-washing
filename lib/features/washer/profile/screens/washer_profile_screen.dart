@@ -6,6 +6,7 @@ import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
 import 'package:clean_ride/features/auth/providers/auth_provider.dart';
 import 'package:clean_ride/data/providers/washer_jobs_provider.dart';
+import 'package:clean_ride/data/models/booking.dart';
 import 'package:gap/gap.dart';
 
 class WasherProfileScreen extends ConsumerWidget {
@@ -16,7 +17,7 @@ class WasherProfileScreen extends ConsumerWidget {
     final user = ref.watch(currentUserProvider);
     final jobsAsync = ref.watch(washerJobsProvider);
     final totalJobs = jobsAsync.valueOrNull?.length ?? 0;
-    final completedJobs = jobsAsync.valueOrNull?.where((j) => j.status == 'done').length ?? 0;
+    final completedJobs = jobsAsync.valueOrNull?.where((j) => j.status == BookingStatus.completed).length ?? 0;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
@@ -145,7 +146,7 @@ class WasherProfileScreen extends ConsumerWidget {
                       ),
                       const Gap(AppSpacing.md),
                       Expanded(
-                        child: _buildStatCard('Member', user?.role ?? '-'),
+                        child: _buildStatCard('Role', user?.role.name ?? '-'),
                       ),
                     ],
                   ),
@@ -253,7 +254,10 @@ class WasherProfileScreen extends ConsumerWidget {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
-                      onPressed: () => context.go('/'),
+                      onPressed: () {
+                        ref.read(authNotifierProvider.notifier).logout();
+                        context.go('/');
+                      },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.error,
                         side: const BorderSide(color: AppColors.error),
@@ -264,20 +268,6 @@ class WasherProfileScreen extends ConsumerWidget {
                         ),
                       ),
                       child: const Text('Sign Out'),
-                    ),
-                  ),
-                  const Gap(AppSpacing.md),
-
-                  // Switch Role
-                  Center(
-                    child: TextButton(
-                      onPressed: () => context.go('/role-select'),
-                      child: Text(
-                        'Switch Role',
-                        style: AppTypography.labelLarge.copyWith(
-                          color: AppColors.primary,
-                        ),
-                      ),
                     ),
                   ),
                   const Gap(AppSpacing.xxxl),

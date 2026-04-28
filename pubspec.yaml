@@ -30,6 +30,7 @@ dependencies:
   gap: ^3.0.0
   heroicons: ^0.11.0
   dio: ^5.9.2
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:

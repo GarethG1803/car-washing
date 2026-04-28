@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
-import 'package:clean_ride/data/models/booking.dart';
 import 'package:clean_ride/data/providers/orders_provider.dart';
 import 'package:clean_ride/features/customer/tracking/widgets/washer_info_card.dart';
 import 'package:clean_ride/features/customer/tracking/widgets/status_timeline.dart';

@@ -1,15 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
+import 'package:clean_ride/features/auth/providers/auth_provider.dart';
 import 'package:gap/gap.dart';
 
-class CustomerProfileScreen extends StatelessWidget {
+class CustomerProfileScreen extends ConsumerWidget {
   const CustomerProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider);
+    final name = user?.name ?? 'Customer';
+    final email = user?.email ?? '';
+    final initials = name
+        .split(' ')
+        .map((w) => w.isNotEmpty ? w[0] : '')
+        .take(2)
+        .join()
+        .toUpperCase();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
@@ -24,10 +36,17 @@ class CustomerProfileScreen extends StatelessWidget {
                 child: SafeArea(
                   child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                     const Gap(20),
-                    const CircleAvatar(radius: 40, backgroundImage: NetworkImage('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&fit=crop')),
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.white.withValues(alpha: 0.2),
+                      child: Text(
+                        initials,
+                        style: AppTypography.headlineLarge.copyWith(color: Colors.white),
+                      ),
+                    ),
                     const Gap(12),
-                    Text('Alex Johnson', style: AppTypography.titleLarge.copyWith(color: Colors.white)),
-                    Text('alex@email.com', style: AppTypography.bodyMedium.copyWith(color: Colors.white70)),
+                    Text(name, style: AppTypography.titleLarge.copyWith(color: Colors.white)),
+                    Text(email, style: AppTypography.bodyMedium.copyWith(color: Colors.white70)),
                   ]),
                 ),
               ),
@@ -59,13 +78,14 @@ class CustomerProfileScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: () => context.go('/'),
+                    onPressed: () {
+                      ref.read(authNotifierProvider.notifier).logout();
+                      context.go('/');
+                    },
                     style: OutlinedButton.styleFrom(foregroundColor: AppColors.error, side: const BorderSide(color: AppColors.error), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
                     child: const Text('Sign Out'),
                   ),
                 ),
-                const Gap(12),
-                TextButton(onPressed: () => context.go('/role-select'), child: Text('Switch Role', style: AppTypography.labelLarge.copyWith(color: AppColors.primary))),
                 const Gap(32),
               ]),
             ),
