@@ -58,7 +58,7 @@ class _SelectDatetimeStepState extends ConsumerState<SelectDatetimeStep> {
       _selectedTime =
           '$displayHour:${minute.toString().padLeft(2, '0')} ${isPm ? 'PM' : 'AM'}';
     }
-    _sync();
+    Future(_sync);
   }
 
   @override
