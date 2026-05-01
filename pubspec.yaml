@@ -31,6 +31,7 @@ dependencies:
   heroicons: ^0.11.0
   dio: ^5.9.2
   image_picker: ^1.1.2
+  shared_preferences: ^2.3.0   # or latest
 
 dev_dependencies:
   flutter_test:

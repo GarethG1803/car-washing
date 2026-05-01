@@ -9,18 +9,33 @@ class EarningsSummaryCard extends StatelessWidget {
   final double todayEarnings;
   final double weekEarnings;
   final double monthEarnings;
-  final int trendPercentage;
 
   const EarningsSummaryCard({
     super.key,
     required this.todayEarnings,
     required this.weekEarnings,
     required this.monthEarnings,
-    required this.trendPercentage,
+    // trendPercentage is removed entirely
   });
+
+  String _weekRange() {
+    final now = DateTime.now();
+    // Find Monday of this week (Monday = 1)
+    final weekday = now.weekday; // 1 = Monday, 7 = Sunday
+    final monday = now.subtract(Duration(days: weekday - 1));
+    final sunday = monday.add(const Duration(days: 6));
+    final fmt = DateFormat('MMM d');
+    return '${fmt.format(monday)} - ${fmt.format(sunday)}';
+  }
+
+  String _monthLabel() {
+    return DateFormat('MMMM yyyy').format(DateTime.now());
+  }
 
   @override
   Widget build(BuildContext context) {
+    final currencyFormat = NumberFormat('#,###');
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -43,51 +58,83 @@ class EarningsSummaryCard extends StatelessWidget {
           ),
           const Gap(AppSpacing.sm),
           Text(
-            'Rp ${NumberFormat('#,###').format(todayEarnings.toInt())}',
+            'Rp ${currencyFormat.format(todayEarnings.toInt())}',
             style: AppTypography.headlineLarge.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
           ),
           const Gap(AppSpacing.lg),
+          // Period details with explicit labels
           Row(
             children: [
               Expanded(
-                child: Text(
-                  'This Week: Rp ${NumberFormat('#,###').format(weekEarnings.toInt())}',
-                  style: AppTypography.labelSmall.copyWith(
-                    color: Colors.white60,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'This Week',
+                      style: AppTypography.labelSmall.copyWith(
+                        color: Colors.white60,
+                      ),
+                    ),
+                    const Gap(2),
+                    Text(
+                      _weekRange(),
+                      style: AppTypography.labelSmall.copyWith(
+                        color: Colors.white60,
+                        fontSize: 10,
+                      ),
+                    ),
+                    const Gap(4),
+                    Text(
+                      'Rp ${currencyFormat.format(weekEarnings.toInt())}',
+                      style: AppTypography.bodyLarge.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              // Vertical divider (optional) – you can add if you like
+              // const SizedBox(
+              //   height: 40,
+              //   child: VerticalDivider(color: Colors.white24),
+              // ),
+              const Gap(AppSpacing.lg),
               Expanded(
-                child: Text(
-                  'This Month: Rp ${NumberFormat('#,###').format(monthEarnings.toInt())}',
-                  style: AppTypography.labelSmall.copyWith(
-                    color: Colors.white60,
-                  ),
-                  textAlign: TextAlign.end,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'This Month',
+                      style: AppTypography.labelSmall.copyWith(
+                        color: Colors.white60,
+                      ),
+                    ),
+                    const Gap(2),
+                    Text(
+                      _monthLabel(),
+                      style: AppTypography.labelSmall.copyWith(
+                        color: Colors.white60,
+                        fontSize: 10,
+                      ),
+                    ),
+                    const Gap(4),
+                    Text(
+                      'Rp ${currencyFormat.format(monthEarnings.toInt())}',
+                      style: AppTypography.bodyLarge.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const Gap(AppSpacing.md),
-          Row(
-            children: [
-              const Icon(
-                Icons.arrow_upward,
-                color: Colors.white,
-                size: 14,
-              ),
-              const Gap(4),
-              Text(
-                '$trendPercentage% vs last week',
-                style: AppTypography.labelSmall.copyWith(
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
+          // Trend line removed entirely
         ],
       ),
     );

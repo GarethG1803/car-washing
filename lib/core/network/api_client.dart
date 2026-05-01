@@ -1,12 +1,37 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'token_storage.dart';
 
-final tokenProvider = StateProvider<String?>((ref) => null);
+// --- Token Notifier that survives hot restarts ---
+class TokenNotifier extends StateNotifier<String?> {
+  TokenNotifier() : super(null) {
+    _load();
+  }
 
+  Future<void> _load() async {
+    final stored = await TokenStorage.read();
+    state = stored;
+  }
+
+  void setToken(String? token) {
+    state = token;
+    if (token != null) {
+      TokenStorage.write(token);
+    } else {
+      TokenStorage.delete();
+    }
+  }
+}
+
+final tokenProvider = StateNotifierProvider<TokenNotifier, String?>((ref) {
+  return TokenNotifier();
+});
+
+// --- API client (unchanged logic, but uses the new tokenProvider) ---
 final apiClientProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: 'https://carwash-api.brevonsolutions.com',
+      baseUrl: 'http://localhost:3000',   // adjust for your device
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {

@@ -5,8 +5,7 @@ import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
 import 'package:clean_ride/features/auth/providers/auth_provider.dart';
-import 'package:clean_ride/data/providers/washer_jobs_provider.dart';
-import 'package:clean_ride/data/models/booking.dart';
+import 'package:clean_ride/data/providers/washer_profile_provider.dart';
 import 'package:gap/gap.dart';
 
 class WasherProfileScreen extends ConsumerWidget {
@@ -15,268 +14,321 @@ class WasherProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-    final jobsAsync = ref.watch(washerJobsProvider);
-    final totalJobs = jobsAsync.valueOrNull?.length ?? 0;
-    final completedJobs = jobsAsync.valueOrNull?.where((j) => j.status == BookingStatus.completed).length ?? 0;
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          // SliverAppBar with gradient, avatar, name, rating, status
-          SliverAppBar(
-            expandedHeight: 240,
-            pinned: true,
-            backgroundColor: AppColors.primary,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.primary, Color(0xFF0047B3)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: SafeArea(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Gap(20),
-                      // Avatar
-                      Stack(
-                        children: [
-                          CircleAvatar(
-                            radius: 44,
-                            backgroundColor: AppColors.primary.withValues(alpha: 0.3),
-                            child: const Icon(Icons.person, size: 44, color: Colors.white),
-                          ),
-                          // Online status dot
-                          Positioned(
-                            bottom: 2,
-                            right: 2,
-                            child: Container(
-                              width: 14,
-                              height: 14,
-                              decoration: BoxDecoration(
-                                color: AppColors.success,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+    final profileAsync = ref.watch(washerProfileProvider);
+
+    // Show loading / error / data for the washers profile stats
+    return profileAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Scaffold(
+        body: Center(
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const Gap(12),
+            Text('Could not load profile', style: AppTypography.bodyLarge),
+            const Gap(16),
+            TextButton(
+              onPressed: () => ref.invalidate(washerProfileProvider),
+              child: const Text('Retry'),
+            ),
+          ]),
+        ),
+      ),
+      data: (profile) {
+        final totalJobs = profile.totalJobs;
+        final completedJobs = profile.completedJobs;
+        final earnings = profile.earnings;
+
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: CustomScrollView(
+            slivers: [
+              // SliverAppBar with gradient, avatar, name, rating, status
+              SliverAppBar(
+                expandedHeight: 240,
+                pinned: true,
+                backgroundColor: AppColors.primary,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.primary, Color(0xFF0047B3)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      const Gap(12),
-                      Text(
-                        user?.name ?? 'Washer',
-                        style: AppTypography.titleLarge.copyWith(
-                          color: Colors.white,
-                        ),
-                      ),
-                      const Gap(6),
-                      // Rating stars
-                      Row(
+                    ),
+                    child: SafeArea(
+                      child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          ...List.generate(5, (index) {
-                            if (index < 4) {
-                              return const Icon(
-                                Icons.star_rounded,
-                                size: 18,
-                                color: Colors.amber,
-                              );
-                            } else {
-                              return const Icon(
-                                Icons.star_half_rounded,
-                                size: 18,
-                                color: Colors.amber,
-                              );
-                            }
-                          }),
-                          const Gap(6),
+                          const Gap(20),
+                          // Avatar
+                          Stack(
+                            children: [
+                              CircleAvatar(
+                                radius: 44,
+                                backgroundColor: AppColors.primary.withValues(alpha: 0.3),
+                                child: const Icon(Icons.person, size: 44, color: Colors.white),
+                              ),
+                              // Online status dot
+                              Positioned(
+                                bottom: 2,
+                                right: 2,
+                                child: Container(
+                                  width: 14,
+                                  height: 14,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.success,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Gap(12),
                           Text(
-                            '4.9',
-                            style: AppTypography.labelLarge.copyWith(
+                            profile.name,
+                            style: AppTypography.titleLarge.copyWith(
                               color: Colors.white,
                             ),
                           ),
+                          const Gap(6),
+                          // Rating stars (hardcoded 4.9, replace when backend supports it)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ...List.generate(5, (index) {
+                                if (index < 4) {
+                                  return const Icon(
+                                    Icons.star_rounded,
+                                    size: 18,
+                                    color: Colors.amber,
+                                  );
+                                } else {
+                                  return const Icon(
+                                    Icons.star_half_rounded,
+                                    size: 18,
+                                    color: Colors.amber,
+                                  );
+                                }
+                              }),
+                              const Gap(6),
+                              Text(
+                                '4.9',
+                                style: AppTypography.labelLarge.copyWith(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Gap(6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Online',
+                              style: AppTypography.labelSmall.copyWith(
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
-                      const Gap(6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.success.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'Online',
-                          style: AppTypography.labelSmall.copyWith(
-                            color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Stats row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatCard('Total Jobs', '$totalJobs'),
                           ),
+                          const Gap(AppSpacing.md),
+                          Expanded(
+                            child: _buildStatCard('Completed', '$completedJobs'),
+                          ),
+                          const Gap(AppSpacing.md),
+                          Expanded(
+                            child: _buildStatCard(
+                              'Earnings',
+                              'Rp ${earnings.toStringAsFixed(0)}',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Gap(AppSpacing.xl),
+
+                      // Specialties Section
+                      Text(
+                        'Specialties',
+                        style: AppTypography.titleMedium,
+                      ),
+                      const Gap(AppSpacing.md),
+                      Wrap(
+                        spacing: AppSpacing.sm,
+                        runSpacing: AppSpacing.sm,
+                        children: profile.specialties
+                            .map((specialty) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.md,
+                                    vertical: AppSpacing.sm,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primaryLight,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: AppColors.primary.withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    specialty,
+                                    style: AppTypography.labelSmall.copyWith(
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ))
+                            .toList(),
+                      ),
+                      const Gap(AppSpacing.xl),
+
+                      // Documents Section
+                      _menuSection('Documents', [
+                        _documentItem(
+                          'ID Verification',
+                          Icons.badge_outlined,
+                          isVerified: true,
+                        ),
+                        _documentItem(
+                          "Driver's License",
+                          Icons.credit_card,
+                          isVerified: true,
+                        ),
+                        _documentItem(
+                          'Background Check',
+                          Icons.verified_user_outlined,
+                          isVerified: true,
+                        ),
+                        _documentItem(
+                          'Insurance',
+                          Icons.shield_outlined,
+                          isVerified: false,
+                          isPending: true,
+                        ),
+                      ]),
+                      const Gap(AppSpacing.lg),
+
+                      // Settings Section
+                      _menuSection('Settings', [
+                        _menuItem(
+                          Icons.person_outline,
+                          'Edit Profile',
+                          () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Edit Profile coming soon')),
+                            );
+                          },
+                        ),
+                        _menuItem(
+                          Icons.account_balance_outlined,
+                          'Bank Account',
+                          () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Bank Account coming soon')),
+                            );
+                          },
+                        ),
+                        _menuItem(
+                          Icons.notifications_outlined,
+                          'Notifications',
+                          () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Notifications coming soon')),
+                            );
+                          },
+                        ),
+                        _menuItem(
+                          Icons.lock_outline,
+                          'Change Password',
+                          () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Change Password coming soon')),
+                            );
+                          },
+                        ),
+                        _menuItem(
+                          Icons.inventory_2_outlined,
+                          'My Supplies',
+                          () => context.push('/washer/inventory'),
+                        ),
+                        _menuItem(
+                          Icons.help_outline,
+                          'Help & Support',
+                          () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Help & Support coming soon')),
+                            );
+                          },
+                        ),
+                        _menuItem(
+                          Icons.privacy_tip_outlined,
+                          'Privacy Policy',
+                          () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Privacy Policy coming soon')),
+                            );
+                          },
+                        ),
+                      ]),
+                      const Gap(AppSpacing.xl),
+
+                      // Sign Out
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            ref.read(authNotifierProvider.notifier).logout();
+                            context.go('/');
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.error,
+                            side: const BorderSide(color: AppColors.error),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(AppSpacing.radiusMd),
+                            ),
+                          ),
+                          child: const Text('Sign Out'),
                         ),
                       ),
+                      const Gap(AppSpacing.xxxl),
                     ],
                   ),
                 ),
               ),
-            ),
+            ],
           ),
-
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Stats row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard('Total Jobs', '$totalJobs'),
-                      ),
-                      const Gap(AppSpacing.md),
-                      Expanded(
-                        child: _buildStatCard('Completed', '$completedJobs'),
-                      ),
-                      const Gap(AppSpacing.md),
-                      Expanded(
-                        child: _buildStatCard('Role', user?.role.name ?? '-'),
-                      ),
-                    ],
-                  ),
-                  const Gap(AppSpacing.xl),
-
-                  // Specialties Section
-                  Text(
-                    'Specialties',
-                    style: AppTypography.titleMedium,
-                  ),
-                  const Gap(AppSpacing.md),
-                  Wrap(
-                    spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.sm,
-                    children: [
-                      'Premium Detail',
-                      'Ceramic Coating',
-                      'Paint Correction',
-                    ]
-                        .map((specialty) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.md,
-                                vertical: AppSpacing.sm,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryLight,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: AppColors.primary.withValues(alpha: 0.3),
-                                ),
-                              ),
-                              child: Text(
-                                specialty,
-                                style: AppTypography.labelSmall.copyWith(
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ))
-                        .toList(),
-                  ),
-                  const Gap(AppSpacing.xl),
-
-                  // Documents Section
-                  _menuSection('Documents', [
-                    _documentItem(
-                      'ID Verification',
-                      Icons.badge_outlined,
-                      isVerified: true,
-                    ),
-                    _documentItem(
-                      "Driver's License",
-                      Icons.credit_card,
-                      isVerified: true,
-                    ),
-                    _documentItem(
-                      'Background Check',
-                      Icons.verified_user_outlined,
-                      isVerified: true,
-                    ),
-                    _documentItem(
-                      'Insurance',
-                      Icons.shield_outlined,
-                      isVerified: false,
-                      isPending: true,
-                    ),
-                  ]),
-                  const Gap(AppSpacing.lg),
-
-                  // Settings Section
-                  _menuSection('Settings', [
-                    _menuItem(
-                      Icons.person_outline,
-                      'Edit Profile',
-                      () {},
-                    ),
-                    _menuItem(
-                      Icons.account_balance_outlined,
-                      'Bank Account',
-                      () {},
-                    ),
-                    _menuItem(
-                      Icons.notifications_outlined,
-                      'Notifications',
-                      () {},
-                    ),
-                    _menuItem(
-                      Icons.lock_outline,
-                      'Change Password',
-                      () {},
-                    ),
-                    _menuItem(
-                      Icons.help_outline,
-                      'Help & Support',
-                      () {},
-                    ),
-                    _menuItem(
-                      Icons.privacy_tip_outlined,
-                      'Privacy Policy',
-                      () {},
-                    ),
-                  ]),
-                  const Gap(AppSpacing.xl),
-
-                  // Sign Out
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        ref.read(authNotifierProvider.notifier).logout();
-                        context.go('/');
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        side: const BorderSide(color: AppColors.error),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppSpacing.radiusMd),
-                        ),
-                      ),
-                      child: const Text('Sign Out'),
-                    ),
-                  ),
-                  const Gap(AppSpacing.xxxl),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

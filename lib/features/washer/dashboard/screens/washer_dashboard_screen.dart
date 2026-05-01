@@ -31,6 +31,12 @@ class WasherDashboardScreen extends ConsumerWidget {
             title: Text('Dashboard', style: AppTypography.titleLarge),
             actions: [
               IconButton(
+                icon: const Icon(Icons.inventory_2_outlined),
+                color: AppColors.textPrimary,
+                tooltip: 'My Supplies',
+                onPressed: () => context.push('/washer/inventory'),
+              ),
+              IconButton(
                 icon: const Icon(Icons.refresh_outlined),
                 color: AppColors.textPrimary,
                 onPressed: () => ref.invalidate(washerJobsProvider),
@@ -62,12 +68,10 @@ class WasherDashboardScreen extends ConsumerWidget {
                       child: Column(children: [
                         const Icon(Icons.error_outline, color: AppColors.error, size: 40),
                         const Gap(8),
-                        Text('Could not load jobs',
-                            style: AppTypography.bodyMedium
-                                .copyWith(color: AppColors.textSecondary)),
-                        TextButton(
-                          onPressed: () => ref.invalidate(washerJobsProvider),
-                          child: const Text('Retry'),
+                        Text('Could not load jobs\n\n${e.toString()}',
+                          style: AppTypography.bodyMedium
+                              .copyWith(color: AppColors.textSecondary),
+                          textAlign: TextAlign.center,
                         ),
                       ]),
                     ),

@@ -22,6 +22,7 @@ class AdminSettingsScreen extends ConsumerWidget {
             _menuItem(Icons.people_alt, 'Customers', () => context.push('/admin/customers')),
             _menuItem(Icons.design_services, 'Services & Pricing', () => context.push('/admin/services-mgmt')),
             _menuItem(Icons.inventory, 'Inventory', () => context.push('/admin/inventory-mgmt')),
+            _menuItem(Icons.receipt_long, 'Supply Requests', () => context.push('/admin/supply-requests')),
             _menuItem(Icons.analytics, 'Analytics', () => context.push('/admin/analytics')),
             _menuItem(Icons.local_offer, 'Promotions', () => context.push('/admin/promotions')),
           ]),

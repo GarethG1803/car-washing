@@ -26,7 +26,9 @@ class AuthNotifier extends AsyncNotifier<void> {
         final data = response.data['data'] as Map<String, dynamic>;
         final token = data['token'] as String;
         final user = User.fromJson(data['user'] as Map<String, dynamic>);
-        ref.read(tokenProvider.notifier).state = token;
+        
+        // Changed: use setToken instead of direct state assignment
+        ref.read(tokenProvider.notifier).setToken(token);
         ref.read(currentUserProvider.notifier).state = user;
         state = const AsyncValue.data(null);
       } else {
@@ -73,7 +75,8 @@ class AuthNotifier extends AsyncNotifier<void> {
   }
 
   void logout() {
-    ref.read(tokenProvider.notifier).state = null;
+    // Changed: use setToken(null) instead of direct state assignment
+    ref.read(tokenProvider.notifier).setToken(null);
     ref.read(currentUserProvider.notifier).state = null;
     state = const AsyncValue.data(null);
   }

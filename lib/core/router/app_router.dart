@@ -38,6 +38,7 @@ import 'package:clean_ride/features/washer/jobs/screens/job_detail_screen.dart';
 import 'package:clean_ride/features/washer/earnings/screens/earnings_screen.dart';
 import 'package:clean_ride/features/washer/schedule/screens/schedule_screen.dart';
 import 'package:clean_ride/features/washer/profile/screens/washer_profile_screen.dart';
+import 'package:clean_ride/features/washer/inventory/screens/washer_inventory_screen.dart';
 
 // Admin shell
 import 'package:clean_ride/features/admin/shell/admin_shell.dart';
@@ -58,6 +59,7 @@ import 'package:clean_ride/features/admin/services/screens/service_management_sc
 import 'package:clean_ride/features/admin/analytics/screens/analytics_screen.dart';
 import 'package:clean_ride/features/admin/promotions/screens/promotions_screen.dart';
 import 'package:clean_ride/features/admin/inventory/screens/inventory_management_screen.dart';
+import 'package:clean_ride/features/admin/supply/screens/admin_supply_requests_screen.dart';
 
 /// Provides the app-wide GoRouter instance.
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -190,6 +192,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => RateServiceScreen(
           bookingId: state.pathParameters['bookingId']!,
         ),
+      ),
+
+            // ── Washer non-shell routes ────────────────────────────────────
+      GoRoute(
+        path: '/washer/inventory',
+        builder: (context, state) => const WasherInventoryScreen(),
       ),
 
       // ── Washer shell ─────────────────────────────────────────────────
@@ -358,6 +366,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/admin/inventory-mgmt',
         builder: (context, state) => const InventoryManagementScreen(),
+      ),
+      GoRoute(
+        path: '/admin/supply-requests',
+        builder: (context, state) => const AdminSupplyRequestsScreen(),
       ),
     ],
   );
