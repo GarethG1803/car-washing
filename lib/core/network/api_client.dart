@@ -31,7 +31,8 @@ final tokenProvider = StateNotifierProvider<TokenNotifier, String?>((ref) {
 final apiClientProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: 'http://localhost:3000',   // adjust for your device
+      baseUrl: 'https://carwash-api.brevonsolutions.com',
+      // baseUrl: 'http://localhost:3000',
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {
