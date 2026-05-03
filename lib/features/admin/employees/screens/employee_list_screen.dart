@@ -116,6 +116,14 @@ class EmployeeListScreen extends ConsumerWidget {
                             style: AppTypography.bodyMedium.copyWith(
                                 color: AppColors.textSecondary),
                           ),
+                          const Gap(4),
+                          SelectableText(
+                            'ID: $id',
+                            style: AppTypography.labelSmall.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 10,
+                            ),
+                          ),
                         ],
                       ),
                     ),
