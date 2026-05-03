@@ -7,6 +7,8 @@ import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
 import 'package:clean_ride/core/widgets/app_status_indicator.dart';
 import 'package:clean_ride/data/providers/admin_orders_provider.dart';
+import 'package:clean_ride/data/providers/users_provider.dart';
+import 'package:clean_ride/core/network/api_client.dart';
 import 'package:gap/gap.dart';
 
 class AdminBookingDetail extends ConsumerWidget {
@@ -29,6 +31,78 @@ class AdminBookingDetail extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
+        actions: [
+          // Only show delete option when order is completed or cancelled
+          Builder(builder: (ctx) {
+            final canDelete = detailAsync.maybeWhen(
+              data: (data) {
+                if (data == null) return false;
+                final status = data['order']?['status']?.toString() ?? '';
+                return status == 'done' || status == 'cancelled';
+              },
+              orElse: () => false,
+            );
+            if (!canDelete) return const SizedBox.shrink();
+            return PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (value) async {
+                if (value == 'delete') {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Delete Order'),
+                      content: const Text(
+                          'Are you sure you want to permanently delete this order? This cannot be undone.'),
+                      actions: [
+                        TextButton(
+                            onPressed: () => ctx.pop(false),
+                            child: const Text('Cancel')),
+                        TextButton(
+                          onPressed: () => ctx.pop(true),
+                          child: const Text('Delete',
+                              style: TextStyle(color: AppColors.error)),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true && context.mounted) {
+                    final error = await ref
+                        .read(adminOrderActionsProvider)
+                        .deleteOrder(bookingId);
+                    if (context.mounted) {
+                      if (error != null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(error),
+                              backgroundColor: AppColors.error),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Order deleted'),
+                              backgroundColor: AppColors.success),
+                        );
+                        context.pop();
+                      }
+                    }
+                  }
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, color: AppColors.error, size: 20),
+                      Gap(12),
+                      Text('Delete Order', style: TextStyle(color: AppColors.error)),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }),
+        ],
       ),
       body: detailAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -120,35 +194,84 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
   }
 
   Future<void> _assignWasher() async {
-    final controller = TextEditingController();
-    final employeeId = await showDialog<String>(
+    // Fetch employees
+    final usersAsync = ref.read(usersProvider('employee'));
+    List<Map<String, dynamic>> employees = [];
+
+    usersAsync.whenData((users) {
+      employees = users;
+    });
+
+    // If still empty, try fetching directly from API
+    if (employees.isEmpty) {
+      try {
+        final dio = ref.read(apiClientProvider);
+        final response = await dio.get('/users', queryParameters: {'role': 'employee'});
+        if (response.data['success'] == true) {
+          employees = List<Map<String, dynamic>>.from(response.data['data']);
+        }
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
+
+    if (employees.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No employees available')),
+      );
+      return;
+    }
+
+    final selectedEmployee = await showDialog<Map<String, dynamic>>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Assign Washer'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Employee ID',
-            hintText: 'Enter employee user ID',
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: employees.length,
+            itemBuilder: (_, index) {
+              final emp = employees[index];
+              final name = emp['name']?.toString() ?? 'Unknown';
+              final id = emp['id']?.toString() ?? '';
+              return ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.primaryLight,
+                  child: Text(
+                    name.isNotEmpty ? name[0].toUpperCase() : '?',
+                    style: const TextStyle(color: AppColors.primary),
+                  ),
+                ),
+                title: Text(name),
+                subtitle: Text('ID: ${id.length > 8 ? id.substring(0, 8) : id}...',
+                    style: const TextStyle(fontSize: 11)),
+                onTap: () => ctx.pop(emp),
+              );
+            },
           ),
         ),
         actions: [
-          TextButton(onPressed: () => ctx.pop(null), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => ctx.pop(controller.text.trim()),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-            child: const Text('Assign', style: TextStyle(color: Colors.white)),
+          TextButton(
+            onPressed: () => ctx.pop(null),
+            child: const Text('Cancel'),
           ),
         ],
       ),
     );
-    if (employeeId == null || employeeId.isEmpty || !mounted) return;
+
+    if (selectedEmployee == null || !mounted) return;
+
+    final employeeId = selectedEmployee['id']?.toString() ?? '';
+    if (employeeId.isEmpty) return;
+
     setState(() => _isActing = true);
     final error = await ref
         .read(adminOrderActionsProvider)
         .assign(widget.bookingId, employeeId);
     if (!mounted) return;
     setState(() => _isActing = false);
+
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error), backgroundColor: AppColors.error),

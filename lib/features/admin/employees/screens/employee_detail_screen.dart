@@ -97,14 +97,15 @@ class EmployeeDetailScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 child: Column(children: [
-                  _card('Account Info', [
-                    _infoRow(Icons.email_outlined, email),
-                    if (createdAt.isNotEmpty)
-                      _infoRow(
-                        Icons.calendar_today_outlined,
-                        'Joined: ${createdAt.length > 10 ? createdAt.substring(0, 10) : createdAt}',
-                      ),
-                  ]),
+                    _card('Account Info', [
+                      _infoRow(Icons.email_outlined, email),
+                      _infoRowWithLabel(Icons.fingerprint, 'Employee ID', employeeId),
+                      if (createdAt.isNotEmpty)
+                        _infoRow(
+                          Icons.calendar_today_outlined,
+                          'Joined: ${createdAt.length > 10 ? createdAt.substring(0, 10) : createdAt}',
+                        ),
+                    ]),
                   const Gap(16),
                   const Gap(32),
                 ]),
@@ -147,5 +148,24 @@ class EmployeeDetailScreen extends ConsumerWidget {
           Expanded(child: Text(text, style: AppTypography.bodyMedium)),
         ]),
       );
+
+  Widget _infoRowWithLabel(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, size: 18, color: AppColors.textSecondary),
+        const Gap(12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label,
+                style: AppTypography.labelSmall
+                    .copyWith(color: AppColors.textSecondary)),
+            const Gap(2),
+            SelectableText(value, style: AppTypography.bodyMedium),
+          ]),
+        ),
+      ]),
+    );
+  }
 
 }

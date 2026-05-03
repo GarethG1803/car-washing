@@ -25,6 +25,13 @@ class AdminSettingsScreen extends ConsumerWidget {
             _menuItem(Icons.receipt_long, 'Supply Requests', () => context.push('/admin/supply-requests')),
             _menuItem(Icons.analytics, 'Analytics', () => context.push('/admin/analytics')),
             _menuItem(Icons.local_offer, 'Promotions', () => context.push('/admin/promotions')),
+            ListTile(
+              leading: const Icon(Icons.percent),
+              title: const Text('Commission Rate'),
+              subtitle: const Text('Set washer payout percentage'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/admin/settings/commission'),
+            ),
           ]),
           const Gap(24),
           SizedBox(
