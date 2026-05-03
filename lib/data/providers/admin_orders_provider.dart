@@ -62,6 +62,21 @@ class AdminOrderActions {
       return e.toString();
     }
   }
+
+  Future<String?> deleteOrder(String orderId) async {
+    try {
+      final dio = _ref.read(apiClientProvider);
+      final response = await dio.delete('/orders/$orderId');
+      if (response.data['success'] == true) {
+        _ref.invalidate(adminOrdersProvider);
+        _ref.invalidate(adminOrderDetailProvider(orderId));
+        return null;
+      }
+      return response.data['message'] ?? 'Failed to delete order';
+    } catch (e) {
+      return e.toString();
+    }
+  }
 }
 
 final adminOrderActionsProvider = Provider((ref) => AdminOrderActions(ref));

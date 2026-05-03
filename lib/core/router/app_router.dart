@@ -52,6 +52,7 @@ import 'package:clean_ride/features/admin/employees/screens/employee_detail_scre
 import 'package:clean_ride/features/admin/finance/screens/finance_overview_screen.dart';
 import 'package:clean_ride/features/admin/finance/screens/invoice_screen.dart';
 import 'package:clean_ride/features/admin/settings/screens/admin_settings_screen.dart';
+import 'package:clean_ride/features/admin/settings/screens/commission_settings_screen.dart';
 import 'package:clean_ride/features/admin/customers/screens/customer_crm_screen.dart';
 import 'package:clean_ride/features/admin/customers/screens/customer_crm_detail.dart';
 import 'package:clean_ride/features/admin/employees/screens/payroll_screen.dart';
@@ -300,6 +301,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => const EmployeeListScreen(),
                 routes: [
                   GoRoute(
+                    path: 'payroll',
+                    builder: (context, state) => const PayrollScreen(),
+                  ),
+                  GoRoute(
                     path: ':id',
                     builder: (context, state) => EmployeeDetailScreen(
                       employeeId: state.pathParameters['id']!,
@@ -342,14 +347,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const CustomerCrmScreen(),
       ),
       GoRoute(
+        path: '/admin/settings/commission',
+        builder: (context, state) => const CommissionSettingsScreen(),
+      ),
+      GoRoute(
         path: '/admin/customers/:id',
         builder: (context, state) => CustomerCrmDetail(
           customerId: state.pathParameters['id']!,
         ),
-      ),
-      GoRoute(
-        path: '/admin/team/payroll',
-        builder: (context, state) => const PayrollScreen(),
       ),
       GoRoute(
         path: '/admin/services-mgmt',
