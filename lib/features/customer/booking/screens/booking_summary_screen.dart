@@ -38,7 +38,10 @@ class BookingSummaryScreen extends ConsumerWidget {
       orElse: () => null,
     );
 
-    final scheduledAt = booking.scheduledAt;
+    // `.toLocal()` is a no-op if already local but flips a UTC DateTime to
+    // local components — guarantees DateFormat shows the user's wall-clock
+    // time regardless of how scheduledAt was constructed upstream.
+    final scheduledAt = booking.scheduledAt?.toLocal();
     final dateStr = scheduledAt != null
         ? DateFormat('EEE, MMM dd yyyy').format(scheduledAt)
         : '—';
