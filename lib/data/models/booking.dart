@@ -27,6 +27,7 @@ class Booking {
   final double? tip;
   final String? notes;
   final String? serviceName;
+  final String? paymentStatus;
   final DateTime createdAt;
   final DateTime? completedAt;
 
@@ -47,9 +48,13 @@ class Booking {
     this.tip,
     this.notes,
     this.serviceName,
+    this.paymentStatus,
     required this.createdAt,
     this.completedAt,
   });
+
+  bool get needsPayment =>
+      status == BookingStatus.completed && paymentStatus != 'paid';
 
   Booking copyWith({
     String? id,
@@ -187,6 +192,7 @@ class Booking {
       totalAmount: (json['total_amount'] as num?)?.toDouble() ?? 0.0,
       notes: json['notes']?.toString(),
       serviceName: json['service_name']?.toString(),
+      paymentStatus: json['payment_status']?.toString(),
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'].toString())
           : DateTime.now(),

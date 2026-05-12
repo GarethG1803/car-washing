@@ -25,9 +25,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
 
   static const _pages = [
     _PageData(
-      scene: _SceneType.wash,
-      title: 'Premium Car Wash',
-      subtitle: 'Professional washing brought to your door — whenever and wherever you need it.',
+      scene: _SceneType.team,
+      title: 'Meet Your Team',
+      subtitle: 'A trusted, trained team of detailers ready to make your car shine.',
     ),
     _PageData(
       scene: _SceneType.booking,
@@ -203,7 +203,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
 // Data
 // ─────────────────────────────────────────────
 
-enum _SceneType { wash, booking, washer }
+enum _SceneType { team, booking, washer }
 
 class _PageData {
   final _SceneType scene;
@@ -280,8 +280,8 @@ class _OnboardingPage extends StatelessWidget {
 
   Widget _buildScene() {
     switch (data.scene) {
-      case _SceneType.wash:
-        return const _WashScene();
+      case _SceneType.team:
+        return const _TeamScene();
       case _SceneType.booking:
         return const _BookingScene();
       case _SceneType.washer:
@@ -321,136 +321,147 @@ Widget _floatingBadge({
     );
 
 // ─────────────────────────────────────────────
-// Scene 1 — Car Wash
+// Scene 1 — Team photo
 // ─────────────────────────────────────────────
 
-class _WashScene extends StatelessWidget {
-  const _WashScene();
+class _TeamScene extends StatelessWidget {
+  const _TeamScene();
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       alignment: Alignment.center,
       children: [
-        // Soft glow ring behind card
+        // Soft glow ring behind photo
         Container(
-          width: 220,
-          height: 220,
+          width: 260,
+          height: 260,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.07),
+            color: Colors.white.withValues(alpha: 0.08),
           ),
         ),
 
-        // Main card
+        // Photo card with rounded corners and shadow
         Container(
-          width: 200,
-          decoration: _cardDecoration,
-          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Icon with blue background
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(Icons.local_car_wash_rounded,
-                    size: 40, color: AppColors.primary),
-              ),
-              const Gap(16),
-              Text('Premium Service',
-                  style: AppTypography.titleMedium
-                      .copyWith(fontWeight: FontWeight.w700)),
-              const Gap(8),
-              // Vehicle type chips
-              Wrap(
-                spacing: 6,
-                children: ['Sedan', 'SUV', 'Truck'].map((t) {
-                  return Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.divider),
-                    ),
-                    child: Text(t,
-                        style: AppTypography.labelSmall
-                            .copyWith(color: AppColors.textSecondary)),
-                  );
-                }).toList(),
-              ),
-              const Gap(14),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text('Book Now',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.labelSmall.copyWith(
-                        color: Colors.white, fontWeight: FontWeight.w700)),
+          width: 240,
+          height: 240,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.22),
+                blurRadius: 32,
+                offset: const Offset(0, 14),
               ),
             ],
           ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: Image.asset(
+              'assets/images/splash.png',
+              fit: BoxFit.cover,
+            ),
+          ),
         )
             .animate()
-            .fadeIn(duration: 500.ms)
-            .scale(begin: const Offset(0.92, 0.92), duration: 500.ms),
+            .fadeIn(duration: 600.ms)
+            .scale(begin: const Offset(0.92, 0.92), duration: 600.ms),
 
-        // Floating water drops
+        // Floating "verified" badge
         Positioned(
-          top: 24,
+          top: 8,
           right: 28,
-          child: _floatingBadge(
-            icon: Icons.water_drop,
-            bg: Colors.white.withValues(alpha: 0.2),
-            fg: Colors.white,
-            size: 36,
-            iconSize: 18,
-          )
-              .animate(delay: 200.ms)
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.success,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.verified_rounded,
+                  color: Colors.white, size: 14),
+              const Gap(4),
+              Text('Verified',
+                  style: AppTypography.labelSmall.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 11)),
+            ]),
+          ).animate(delay: 300.ms).fadeIn().scale(
+                begin: const Offset(0.5, 0.5),
+                duration: 400.ms,
+              ),
+        ),
+
+        // Floating sparkle
+        Positioned(
+          top: 36,
+          left: 16,
+          child: const Icon(Icons.auto_awesome,
+                  color: Color(0xFFFBBF24), size: 22)
+              .animate(delay: 400.ms)
               .fadeIn()
-              .scale(begin: const Offset(0.5, 0.5)),
+              .scale(begin: const Offset(0.3, 0.3)),
+        ),
+
+        // Floating star
+        Positioned(
+          bottom: 32,
+          left: 22,
+          child: const Icon(Icons.star_rounded,
+                  color: Color(0xFFFBBF24), size: 24)
+              .animate(delay: 500.ms)
+              .fadeIn()
+              .scale(begin: const Offset(0.3, 0.3)),
         ),
         Positioned(
-          top: 72,
-          left: 18,
-          child: _floatingBadge(
-            icon: Icons.water_drop,
-            bg: Colors.white.withValues(alpha: 0.12),
-            fg: Colors.white.withValues(alpha: 0.7),
-            size: 24,
-            iconSize: 12,
-          ).animate(delay: 350.ms).fadeIn(),
+          bottom: 56,
+          right: 18,
+          child: const Icon(Icons.star_rounded,
+                  color: Color(0xFFFBBF24), size: 16)
+              .animate(delay: 600.ms)
+              .fadeIn(),
         ),
+
+        // "Team of 5+" pill at the bottom
         Positioned(
-          bottom: 40,
-          right: 20,
-          child: _floatingBadge(
-            icon: Icons.auto_awesome,
-            bg: const Color(0xFFFDE68A).withValues(alpha: 0.25),
-            fg: const Color(0xFFFDE68A),
-            size: 30,
-            iconSize: 15,
-          ).animate(delay: 400.ms).fadeIn(),
-        ),
-        Positioned(
-          bottom: 28,
-          left: 24,
-          child: _floatingBadge(
-            icon: Icons.water_drop,
-            bg: Colors.white.withValues(alpha: 0.15),
-            fg: Colors.white.withValues(alpha: 0.6),
-            size: 20,
-            iconSize: 10,
-          ).animate(delay: 300.ms).fadeIn(),
+          bottom: 4,
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.groups_rounded,
+                    size: 16, color: AppColors.primary),
+                const Gap(6),
+                Text('Trained professionals',
+                    style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ).animate(delay: 350.ms).fadeIn().slideY(begin: 0.5, end: 0),
         ),
       ],
     );

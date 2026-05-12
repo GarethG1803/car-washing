@@ -13,8 +13,9 @@ class OrderCard extends StatelessWidget {
 
   const OrderCard({super.key, required this.booking, this.onTap});
 
-  AppStatus _mapStatus(BookingStatus status) {
-    switch (status) {
+  AppStatus _mapStatus() {
+    if (booking.needsPayment) return AppStatus.needsPayment;
+    switch (booking.status) {
       case BookingStatus.pending:
         return AppStatus.pending;
       case BookingStatus.confirmed:
@@ -70,7 +71,7 @@ class OrderCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                AppStatusIndicator(status: _mapStatus(booking.status)),
+                AppStatusIndicator(status: _mapStatus()),
               ],
             ),
             const Gap(12),

@@ -3,7 +3,7 @@ import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
 
-enum AppStatus { pending, confirmed, inProgress, completed, cancelled }
+enum AppStatus { pending, confirmed, inProgress, needsPayment, completed, cancelled }
 
 class AppStatusIndicator extends StatelessWidget {
   final AppStatus status;
@@ -21,6 +21,8 @@ class AppStatusIndicator extends StatelessWidget {
         return 'Confirmed';
       case AppStatus.inProgress:
         return 'In Progress';
+      case AppStatus.needsPayment:
+        return 'Needs Payment';
       case AppStatus.completed:
         return 'Completed';
       case AppStatus.cancelled:
@@ -36,6 +38,8 @@ class AppStatusIndicator extends StatelessWidget {
         return AppColors.primary.withValues(alpha: 0.1);
       case AppStatus.inProgress:
         return AppColors.primary;
+      case AppStatus.needsPayment:
+        return AppColors.warning;
       case AppStatus.completed:
         return AppColors.success.withValues(alpha: 0.1);
       case AppStatus.cancelled:
@@ -50,6 +54,8 @@ class AppStatusIndicator extends StatelessWidget {
       case AppStatus.confirmed:
         return AppColors.primary;
       case AppStatus.inProgress:
+        return Colors.white;
+      case AppStatus.needsPayment:
         return Colors.white;
       case AppStatus.completed:
         return AppColors.success;
