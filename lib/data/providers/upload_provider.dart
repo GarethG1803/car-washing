@@ -19,7 +19,6 @@ class UploadService {
     final response = await _dio.post(
       '/upload',
       data: formData,
-      options: Options(contentType: 'multipart/form-data'),
     );
     if (response.data['success'] == true) {
       return response.data['data']['url'] as String;
