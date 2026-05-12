@@ -14,7 +14,12 @@ class Booking {
   final String id;
   final String customerId;
   final String? customerName;
+  final String? customerPhone;
+  final String? customerAvatar;
   final String? washerId;
+  final String? washerName;
+  final String? washerPhone;
+  final String? washerAvatar;
   final String vehicleId;
   final String servicePackageId;
   final List<String> addonIds;
@@ -36,7 +41,12 @@ class Booking {
     required this.id,
     required this.customerId,
     this.customerName,
+    this.customerPhone,
+    this.customerAvatar,
     this.washerId,
+    this.washerName,
+    this.washerPhone,
+    this.washerAvatar,
     required this.vehicleId,
     required this.servicePackageId,
     required this.addonIds,
@@ -58,11 +68,19 @@ class Booking {
   bool get needsPayment =>
       status == BookingStatus.completed && paymentStatus != 'paid';
 
+  String get shortId =>
+      id.length >= 8 ? id.substring(0, 8).toUpperCase() : id.toUpperCase();
+
   Booking copyWith({
     String? id,
     String? customerId,
     String? customerName,
+    String? customerPhone,
+    String? customerAvatar,
     String? washerId,
+    String? washerName,
+    String? washerPhone,
+    String? washerAvatar,
     String? vehicleId,
     String? servicePackageId,
     List<String>? addonIds,
@@ -76,6 +94,7 @@ class Booking {
     double? tip,
     String? notes,
     String? serviceName,
+    String? paymentStatus,
     DateTime? createdAt,
     DateTime? completedAt,
   }) {
@@ -83,7 +102,12 @@ class Booking {
       id: id ?? this.id,
       customerId: customerId ?? this.customerId,
       customerName: customerName ?? this.customerName,
+      customerPhone: customerPhone ?? this.customerPhone,
+      customerAvatar: customerAvatar ?? this.customerAvatar,
       washerId: washerId ?? this.washerId,
+      washerName: washerName ?? this.washerName,
+      washerPhone: washerPhone ?? this.washerPhone,
+      washerAvatar: washerAvatar ?? this.washerAvatar,
       vehicleId: vehicleId ?? this.vehicleId,
       servicePackageId: servicePackageId ?? this.servicePackageId,
       addonIds: addonIds ?? this.addonIds,
@@ -97,6 +121,7 @@ class Booking {
       tip: tip ?? this.tip,
       notes: notes ?? this.notes,
       serviceName: serviceName ?? this.serviceName,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
       createdAt: createdAt ?? this.createdAt,
       completedAt: completedAt ?? this.completedAt,
     );
@@ -110,7 +135,12 @@ class Booking {
           id == other.id &&
           customerId == other.customerId &&
           customerName == other.customerName &&
+          customerPhone == other.customerPhone &&
+          customerAvatar == other.customerAvatar &&
           washerId == other.washerId &&
+          washerName == other.washerName &&
+          washerPhone == other.washerPhone &&
+          washerAvatar == other.washerAvatar &&
           vehicleId == other.vehicleId &&
           servicePackageId == other.servicePackageId &&
           listEquals(addonIds, other.addonIds) &&
@@ -124,6 +154,7 @@ class Booking {
           tip == other.tip &&
           notes == other.notes &&
           serviceName == other.serviceName &&
+          paymentStatus == other.paymentStatus &&
           createdAt == other.createdAt &&
           completedAt == other.completedAt;
 
@@ -132,7 +163,12 @@ class Booking {
         id,
         customerId,
         customerName,
+        customerPhone,
+        customerAvatar,
         washerId,
+        washerName,
+        washerPhone,
+        washerAvatar,
         vehicleId,
         servicePackageId,
         Object.hashAll(addonIds),
@@ -146,29 +182,29 @@ class Booking {
         tip,
         notes,
         serviceName,
+        paymentStatus,
         createdAt,
         completedAt,
       ]);
 
   @override
   String toString() =>
-      'Booking(id: $id, customerId: $customerId, customerName: $customerName, washerId: $washerId, '
+      'Booking(id: $id, customerId: $customerId, customerName: $customerName, '
+      'washerId: $washerId, washerName: $washerName, '
       'vehicleId: $vehicleId, servicePackageId: $servicePackageId, '
-      'addonIds: $addonIds, status: $status, scheduledDate: $scheduledDate, '
-      'timeSlot: $timeSlot, address: $address, latitude: $latitude, '
-      'longitude: $longitude, totalAmount: $totalAmount, tip: $tip, '
-      'notes: $notes, createdAt: $createdAt, completedAt: $completedAt)';
-
-  String get shortId =>
-      id.length >= 8 ? id.substring(0, 8).toUpperCase() : id.toUpperCase();
+      'status: $status, scheduledDate: $scheduledDate, '
+      'address: $address, totalAmount: $totalAmount, '
+      'paymentStatus: $paymentStatus)';
 
   factory Booking.fromApiJson(Map<String, dynamic> json) {
+    // Support both nested objects (customer: {...}) and flat fields
+    // (customer_name) — different endpoints use different shapes.
     final customer = json['customer'];
     final customerJson =
-        customer is Map<String, dynamic> ? customer : <String, dynamic>{};
+        customer is Map<String, dynamic> ? customer : const <String, dynamic>{};
     final washer = json['washer'] ?? json['assigned_employee'];
     final washerJson =
-        washer is Map<String, dynamic> ? washer : <String, dynamic>{};
+        washer is Map<String, dynamic> ? washer : const <String, dynamic>{};
 
     BookingStatus status;
     switch (json['status']?.toString()) {
@@ -190,13 +226,23 @@ class Booking {
         : DateTime.now();
     return Booking(
       id: json['id']?.toString() ?? '',
-      customerId:
-          json['customer_id']?.toString() ?? customerJson['id']?.toString() ?? '',
+      customerId: json['customer_id']?.toString() ??
+          customerJson['id']?.toString() ??
+          '',
       customerName: json['customer_name']?.toString() ??
-          json['customerName']?.toString() ??
           customerJson['name']?.toString(),
+      customerPhone: json['customer_phone']?.toString() ??
+          customerJson['phone']?.toString(),
+      customerAvatar: json['customer_avatar']?.toString() ??
+          customerJson['avatar_url']?.toString(),
       washerId: json['assigned_employee_id']?.toString() ??
           washerJson['id']?.toString(),
+      washerName: json['washer_name']?.toString() ??
+          washerJson['name']?.toString(),
+      washerPhone: json['washer_phone']?.toString() ??
+          washerJson['phone']?.toString(),
+      washerAvatar: json['washer_avatar']?.toString() ??
+          washerJson['avatar_url']?.toString(),
       vehicleId: json['vehicle_plate']?.toString() ?? '',
       servicePackageId: json['service_id']?.toString() ?? '',
       addonIds: const [],
