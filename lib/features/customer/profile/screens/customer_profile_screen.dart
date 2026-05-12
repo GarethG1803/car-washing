@@ -32,22 +32,31 @@ class CustomerProfileScreen extends ConsumerWidget {
             backgroundColor: AppColors.primary,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: const BoxDecoration(gradient: LinearGradient(colors: [AppColors.primary, Color(0xFF0047B3)])),
+                decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                        colors: [AppColors.primary, Color(0xFF0047B3)])),
                 child: SafeArea(
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    const Gap(20),
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundColor: Colors.white.withValues(alpha: 0.2),
-                      child: Text(
-                        initials,
-                        style: AppTypography.headlineLarge.copyWith(color: Colors.white),
-                      ),
-                    ),
-                    const Gap(12),
-                    Text(name, style: AppTypography.titleLarge.copyWith(color: Colors.white)),
-                    Text(email, style: AppTypography.bodyMedium.copyWith(color: Colors.white70)),
-                  ]),
+                  child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Gap(20),
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Colors.white.withValues(alpha: 0.2),
+                          child: Text(
+                            initials,
+                            style: AppTypography.headlineLarge
+                                .copyWith(color: Colors.white),
+                          ),
+                        ),
+                        const Gap(12),
+                        Text(name,
+                            style: AppTypography.titleLarge
+                                .copyWith(color: Colors.white)),
+                        Text(email,
+                            style: AppTypography.bodyMedium
+                                .copyWith(color: Colors.white70)),
+                      ]),
                 ),
               ),
             ),
@@ -57,22 +66,22 @@ class CustomerProfileScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(children: [
                 _menuSection('Account', [
-                  _menuItem(Icons.person_outline, 'Edit Profile', () => context.push('/customer/profile/edit')),
-                  _menuItem(Icons.directions_car, 'My Vehicles', () => context.push('/customer/profile/vehicles')),
-                  _menuItem(Icons.payment, 'Payment Methods', () => context.push('/customer/payments')),
-                  _menuItem(Icons.location_on_outlined, 'Saved Addresses', () {}),
-                ]),
-                const Gap(16),
-                _menuSection('Rewards', [
-                  _menuItem(Icons.stars, 'Loyalty Program', () => context.push('/customer/loyalty')),
-                  _menuItem(Icons.card_giftcard, 'Refer a Friend', () => context.push('/customer/loyalty/referral')),
-                  _menuItem(Icons.local_offer_outlined, 'Promotions', () {}),
+                  _menuItem(Icons.person_outline, 'Edit Profile',
+                      () => context.push('/customer/profile/edit')),
+                  _menuItem(Icons.directions_car, 'My Vehicles',
+                      () => context.push('/customer/profile/vehicles')),
+                  _menuItem(Icons.payment, 'Payment Methods',
+                      () => context.push('/customer/payments')),
+                  _menuItem(
+                      Icons.location_on_outlined, 'Saved Addresses', () {}),
                 ]),
                 const Gap(16),
                 _menuSection('Support', [
                   _menuItem(Icons.help_outline, 'Help Center', () {}),
-                  _menuItem(Icons.privacy_tip_outlined, 'Privacy Policy', () {}),
-                  _menuItem(Icons.description_outlined, 'Terms of Service', () {}),
+                  _menuItem(
+                      Icons.privacy_tip_outlined, 'Privacy Policy', () {}),
+                  _menuItem(
+                      Icons.description_outlined, 'Terms of Service', () {}),
                 ]),
                 const Gap(24),
                 SizedBox(
@@ -82,7 +91,13 @@ class CustomerProfileScreen extends ConsumerWidget {
                       ref.read(authNotifierProvider.notifier).logout();
                       context.go('/');
                     },
-                    style: OutlinedButton.styleFrom(foregroundColor: AppColors.error, side: const BorderSide(color: AppColors.error), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd))),
+                    style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(color: AppColors.error),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppSpacing.radiusMd))),
                     child: const Text('Sign Out'),
                   ),
                 ),
@@ -97,9 +112,19 @@ class CustomerProfileScreen extends ConsumerWidget {
 
   Widget _menuSection(String title, List<Widget> items) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppSpacing.radiusMd), boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 2))]),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 2))
+          ]),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(padding: const EdgeInsets.fromLTRB(16, 16, 16, 8), child: Text(title, style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary))),
+        Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(title,
+                style: AppTypography.labelSmall
+                    .copyWith(color: AppColors.textSecondary))),
         ...items,
       ]),
     );
@@ -109,7 +134,8 @@ class CustomerProfileScreen extends ConsumerWidget {
     return ListTile(
       leading: Icon(icon, color: AppColors.textPrimary, size: 22),
       title: Text(label, style: AppTypography.bodyLarge),
-      trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 20),
+      trailing: const Icon(Icons.chevron_right,
+          color: AppColors.textSecondary, size: 20),
       onTap: onTap,
     );
   }
