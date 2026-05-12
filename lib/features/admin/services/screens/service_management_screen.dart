@@ -51,7 +51,8 @@ class ServiceManagementScreen extends ConsumerWidget {
                   const Icon(Icons.local_car_wash_outlined,
                       size: 64, color: AppColors.textSecondary),
                   const Gap(16),
-                  Text('No services configured', style: AppTypography.titleMedium),
+                  Text('No services configured',
+                      style: AppTypography.titleMedium),
                 ],
               ),
             );
@@ -68,7 +69,10 @@ class ServiceManagementScreen extends ConsumerWidget {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                       boxShadow: const [
-                        BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 2))
+                        BoxShadow(
+                            color: Color(0x0A000000),
+                            blurRadius: 10,
+                            offset: Offset(0, 2))
                       ],
                     ),
                     child: Row(children: [
@@ -86,14 +90,16 @@ class ServiceManagementScreen extends ConsumerWidget {
                       ),
                       const Gap(12),
                       Expanded(
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(s.name, style: AppTypography.titleMedium),
-                          Text(
-                            '${s.duration} min • ${s.category.name}',
-                            style: AppTypography.bodyMedium
-                                .copyWith(color: AppColors.textSecondary),
-                          ),
-                        ]),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(s.name, style: AppTypography.titleMedium),
+                              Text(
+                                '${s.duration} min • ${s.category.name}',
+                                style: AppTypography.bodyMedium
+                                    .copyWith(color: AppColors.textSecondary),
+                              ),
+                            ]),
                       ),
                       Text(
                         'Rp ${NumberFormat('#,###').format(s.price.toInt())}',
@@ -127,12 +133,14 @@ class ServiceManagementScreen extends ConsumerWidget {
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-          color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)),
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(10)),
       child: const Icon(Icons.local_car_wash, color: AppColors.primary),
     );
   }
 
-  void _showForm(BuildContext context, WidgetRef ref, {ServicePackage? existing}) {
+  void _showForm(BuildContext context, WidgetRef ref,
+      {ServicePackage? existing}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -174,7 +182,8 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
     final e = widget.existing;
     _name = TextEditingController(text: e?.name ?? '');
     _description = TextEditingController(text: e?.description ?? '');
-    _price = TextEditingController(text: e != null ? e.price.toStringAsFixed(0) : '');
+    _price = TextEditingController(
+        text: e != null ? e.price.toStringAsFixed(0) : '');
     _duration = TextEditingController(text: e?.duration.toString() ?? '60');
     _imageUrl = e?.imageUrl;
     if (e != null) {
@@ -201,8 +210,8 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
   }
 
   Future<void> _pickImage() async {
-    final file = await ImagePicker()
-        .pickImage(source: ImageSource.gallery, maxWidth: 1024, imageQuality: 85);
+    final file = await ImagePicker().pickImage(
+        source: ImageSource.gallery, maxWidth: 1024, imageQuality: 85);
     if (file == null) return;
 
     setState(() => _uploadingImage = true);
@@ -257,7 +266,8 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -295,10 +305,6 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
                       color: AppColors.background,
                       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                       border: Border.all(color: AppColors.divider),
-                      image: _imageUrl != null
-                          ? DecorationImage(
-                              image: NetworkImage(_imageUrl!), fit: BoxFit.cover)
-                          : null,
                     ),
                     child: _uploadingImage
                         ? const Center(child: CircularProgressIndicator())
@@ -308,29 +314,70 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
                                 children: [
                                   Icon(Icons.add_photo_alternate_outlined,
                                       size: 40,
-                                      color: AppColors.primary.withValues(alpha: 0.6)),
+                                      color: AppColors.primary
+                                          .withValues(alpha: 0.6)),
                                   const Gap(8),
                                   Text('Tap to add photo',
-                                      style: AppTypography.bodyMedium
-                                          .copyWith(color: AppColors.textSecondary)),
+                                      style: AppTypography.bodyMedium.copyWith(
+                                          color: AppColors.textSecondary)),
                                 ],
                               )
-                            : Align(
-                                alignment: Alignment.topRight,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8),
-                                  child: GestureDetector(
-                                    onTap: () => setState(() => _imageUrl = null),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(
-                                          color: Colors.black54,
-                                          shape: BoxShape.circle),
-                                      child: const Icon(Icons.close,
-                                          size: 16, color: Colors.white),
+                            : Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(
+                                        AppSpacing.radiusMd),
+                                    child: Image.network(
+                                      _imageUrl!,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: 140,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return Container(
+                                          color: AppColors.background,
+                                          child: Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                  Icons
+                                                      .image_not_supported_outlined,
+                                                  size: 40,
+                                                  color: AppColors.error
+                                                      .withValues(alpha: 0.6)),
+                                              const Gap(8),
+                                              Text('Image failed to load',
+                                                  style: AppTypography
+                                                      .bodyMedium
+                                                      .copyWith(
+                                                          color: AppColors
+                                                              .textSecondary)),
+                                            ],
+                                          ),
+                                        );
+                                      },
                                     ),
                                   ),
-                                ),
+                                  Align(
+                                    alignment: Alignment.topRight,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: GestureDetector(
+                                        onTap: () =>
+                                            setState(() => _imageUrl = null),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                              color: Colors.black54,
+                                              shape: BoxShape.circle),
+                                          child: const Icon(Icons.close,
+                                              size: 16, color: Colors.white),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                   ),
                 ),
@@ -382,8 +429,7 @@ class _ServiceFormSheetState extends ConsumerState<_ServiceFormSheet> {
                   items: _vehicleTypes
                       .map((t) => DropdownMenuItem(
                             value: t,
-                            child:
-                                Text(t[0].toUpperCase() + t.substring(1)),
+                            child: Text(t[0].toUpperCase() + t.substring(1)),
                           ))
                       .toList(),
                   onChanged: (v) => setState(() => _vehicleType = v!),

@@ -36,13 +36,18 @@ class ServiceDetailScreen extends ConsumerWidget {
         data: (service) {
           if (service == null) {
             return Center(
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Icon(Icons.search_off, size: 48, color: AppColors.textSecondary),
-                const Gap(12),
-                Text('Service not found', style: AppTypography.titleMedium),
-                const Gap(12),
-                TextButton(onPressed: () => context.pop(), child: const Text('Go Back')),
-              ]),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.search_off,
+                        size: 48, color: AppColors.textSecondary),
+                    const Gap(12),
+                    Text('Service not found', style: AppTypography.titleMedium),
+                    const Gap(12),
+                    TextButton(
+                        onPressed: () => context.pop(),
+                        child: const Text('Go Back')),
+                  ]),
             );
           }
           return CustomScrollView(slivers: [
@@ -55,68 +60,96 @@ class ServiceDetailScreen extends ConsumerWidget {
                 onPressed: () => context.pop(),
               ),
               flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.primary, Color(0xFF0047B3)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: const Center(
-                    child: Icon(Icons.local_car_wash, size: 80, color: Colors.white24),
-                  ),
-                ),
+                background: service.imageUrl != null
+                    ? Image.network(
+                        service.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [AppColors.primary, Color(0xFF0047B3)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.local_car_wash,
+                                size: 80, color: Colors.white24),
+                          ),
+                        ),
+                      )
+                    : Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppColors.primary, Color(0xFF0047B3)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.local_car_wash,
+                              size: 80, color: Colors.white24),
+                        ),
+                      ),
               ),
             ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(service.name, style: AppTypography.headlineMedium),
-                  const Gap(8),
-                  Row(children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
-                        borderRadius: BorderRadius.circular(8),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(service.name, style: AppTypography.headlineMedium),
+                      const Gap(8),
+                      Row(children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(service.category.name.toUpperCase(),
+                              style: AppTypography.labelSmall
+                                  .copyWith(color: AppColors.primary)),
+                        ),
+                      ]),
+                      const Gap(16),
+                      Text(
+                        'Rp ${NumberFormat('#,###').format(service.price.toInt())}',
+                        style: AppTypography.headlineLarge.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold),
                       ),
-                      child: Text(service.category.name.toUpperCase(),
-                          style: AppTypography.labelSmall.copyWith(color: AppColors.primary)),
-                    ),
-                  ]),
-                  const Gap(16),
-                  Text(
-                    'Rp ${NumberFormat('#,###').format(service.price.toInt())}',
-                    style: AppTypography.headlineLarge.copyWith(
-                        color: AppColors.primary, fontWeight: FontWeight.bold),
-                  ),
-                  if (service.description.isNotEmpty) ...[
-                    const Gap(24),
-                    Text('Description', style: AppTypography.titleMedium),
-                    const Gap(8),
-                    Text(service.description,
-                        style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.textSecondary, height: 1.5)),
-                  ],
-                  if (service.features.isNotEmpty) ...[
-                    const Gap(24),
-                    Text("What's Included", style: AppTypography.titleMedium),
-                    const Gap(12),
-                    ...service.features.map(
-                      (f) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(children: [
-                          const Icon(Icons.check_circle, size: 20, color: AppColors.success),
-                          const Gap(12),
-                          Expanded(child: Text(f, style: AppTypography.bodyMedium)),
-                        ]),
-                      ),
-                    ),
-                  ],
-                  const Gap(100),
-                ]),
+                      if (service.description.isNotEmpty) ...[
+                        const Gap(24),
+                        Text('Description', style: AppTypography.titleMedium),
+                        const Gap(8),
+                        Text(service.description,
+                            style: AppTypography.bodyMedium.copyWith(
+                                color: AppColors.textSecondary, height: 1.5)),
+                      ],
+                      if (service.features.isNotEmpty) ...[
+                        const Gap(24),
+                        Text("What's Included",
+                            style: AppTypography.titleMedium),
+                        const Gap(12),
+                        ...service.features.map(
+                          (f) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(children: [
+                              const Icon(Icons.check_circle,
+                                  size: 20, color: AppColors.success),
+                              const Gap(12),
+                              Expanded(
+                                  child:
+                                      Text(f, style: AppTypography.bodyMedium)),
+                            ]),
+                          ),
+                        ),
+                      ],
+                      const Gap(100),
+                    ]),
               ),
             ),
           ]);
@@ -134,18 +167,27 @@ class ServiceDetailScreen extends ConsumerWidget {
             child: SafeArea(
               child: Row(children: [
                 Expanded(
-                  child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Price', style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary)),
-                    Text(
-                      'Rp ${NumberFormat('#,###').format(service.price.toInt())}',
-                      style: AppTypography.titleLarge.copyWith(color: AppColors.primary, fontWeight: FontWeight.bold),
-                    ),
-                  ]),
+                  child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Price',
+                            style: AppTypography.bodyMedium
+                                .copyWith(color: AppColors.textSecondary)),
+                        Text(
+                          'Rp ${NumberFormat('#,###').format(service.price.toInt())}',
+                          style: AppTypography.titleLarge.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ]),
                 ),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      ref.read(bookingStateProvider.notifier).setService(service.id);
+                      ref
+                          .read(bookingStateProvider.notifier)
+                          .setService(service.id);
                       context.push('/customer/booking/flow');
                     },
                     style: ElevatedButton.styleFrom(
@@ -153,7 +195,8 @@ class ServiceDetailScreen extends ConsumerWidget {
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusMd)),
                     ),
                     child: const Text('Book This Service'),
                   ),

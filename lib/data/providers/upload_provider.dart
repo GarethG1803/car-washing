@@ -12,10 +12,15 @@ class UploadService {
   UploadService(this._dio);
 
   Future<String> uploadImage(XFile file) async {
+    final bytes = await file.readAsBytes();
     final formData = FormData.fromMap({
-      'image': await MultipartFile.fromFile(file.path, filename: file.name),
+      'image': MultipartFile.fromBytes(bytes, filename: file.name),
     });
-    final response = await _dio.post('/upload', data: formData);
+    final response = await _dio.post(
+      '/upload',
+      data: formData,
+      options: Options(contentType: 'multipart/form-data'),
+    );
     if (response.data['success'] == true) {
       return response.data['data']['url'] as String;
     }
