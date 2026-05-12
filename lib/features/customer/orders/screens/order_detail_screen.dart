@@ -67,19 +67,41 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     }
   }
 
-  void _launchPayment() {
+  void _launchPayment() async {
     final url = _invoiceUrl;
     if (url == null) return;
-    launchUrl(Uri.parse(url), mode: LaunchMode.platformDefault)
-        .catchError((_) {
+
+    try {
+      final uri = Uri.parse(url);
+      // On web: webOnlyWindowName '_self' navigates the CURRENT tab, bypassing
+      //   popup blockers entirely. Session is restored on return via main().
+      // On mobile: LaunchMode.externalApplication opens system browser.
+      final ok = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+        webOnlyWindowName: '_self',
+      );
+      if (!ok && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text(
+              'Browser blocked the payment window. Copy the link instead.'),
+          backgroundColor: AppColors.error,
+          action: SnackBarAction(
+            label: 'Copy link',
+            textColor: Colors.white,
+            onPressed: () =>
+                Clipboard.setData(ClipboardData(text: url)),
+          ),
+        ));
+      }
+    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Could not open payment page. Try again.'),
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Could not open payment page: $e'),
           backgroundColor: AppColors.error,
         ));
       }
-      return false;
-    });
+    }
   }
 
   void _refresh() {
