@@ -177,6 +177,10 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
           final dbInvoiceUrl = order['xendit_invoice_url']?.toString();
           final isPaid = paymentStatus == 'paid';
 
+          // Override the "completed" badge with "Needs Payment" if not yet paid.
+          final displayStatus =
+              (isDone && !isPaid) ? AppStatus.needsPayment : appStatus;
+
           // Washer info from JOIN
           final washerName = order['washer_name']?.toString();
           final washerPhone = order['washer_phone']?.toString();
@@ -216,7 +220,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                               style: AppTypography.titleLarge,
                             ),
                           ),
-                          AppStatusIndicator(status: appStatus),
+                          AppStatusIndicator(status: displayStatus),
                         ]),
                     const Gap(12),
                     if (scheduledAt != null)
