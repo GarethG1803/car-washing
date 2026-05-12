@@ -2,27 +2,77 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
 import 'package:clean_ride/core/widgets/app_status_indicator.dart';
 import 'package:clean_ride/data/providers/orders_provider.dart';
+import 'package:clean_ride/data/providers/payment_provider.dart';
 import 'package:gap/gap.dart';
 
-class OrderDetailScreen extends ConsumerWidget {
+class OrderDetailScreen extends ConsumerStatefulWidget {
   final String bookingId;
   const OrderDetailScreen({super.key, required this.bookingId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final detailAsync = ref.watch(orderDetailProvider(bookingId));
+  ConsumerState<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
+  bool _payLoading = false;
+
+  Future<void> _onPay(String? existingUrl) async {
+    setState(() => _payLoading = true);
+    try {
+      String? url = existingUrl;
+      if (url == null) {
+        url = await ref
+            .read(paymentNotifierProvider(widget.bookingId).notifier)
+            .createInvoice(widget.bookingId);
+      }
+      if (url == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not create payment. Try again.'),
+            backgroundColor: AppColors.error,
+          ));
+        }
+        return;
+      }
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        // Refresh payment status when user comes back
+        ref.invalidate(paymentStatusProvider(widget.bookingId));
+        ref.invalidate(orderDetailProvider(widget.bookingId));
+      }
+    } finally {
+      if (mounted) setState(() => _payLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final detailAsync = ref.watch(orderDetailProvider(widget.bookingId));
+    final paymentAsync = ref.watch(paymentStatusProvider(widget.bookingId));
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Order #${bookingId.length > 8 ? bookingId.substring(0, 8) : bookingId}'),
+        title: Text(
+            'Order #${widget.bookingId.length > 8 ? widget.bookingId.substring(0, 8).toUpperCase() : widget.bookingId.toUpperCase()}'),
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () {
+              ref.invalidate(orderDetailProvider(widget.bookingId));
+              ref.invalidate(paymentStatusProvider(widget.bookingId));
+            },
+          ),
+        ],
       ),
       body: detailAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -33,7 +83,7 @@ class OrderDetailScreen extends ConsumerWidget {
             Text('Could not load order', style: AppTypography.titleMedium),
             const Gap(16),
             TextButton(
-              onPressed: () => ref.invalidate(orderDetailProvider(bookingId)),
+              onPressed: () => ref.invalidate(orderDetailProvider(widget.bookingId)),
               child: const Text('Retry'),
             ),
           ]),
@@ -41,13 +91,17 @@ class OrderDetailScreen extends ConsumerWidget {
         data: (data) {
           if (data == null) {
             return Center(
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Icon(Icons.receipt_long_outlined, size: 48, color: AppColors.textSecondary),
-                const Gap(12),
-                Text('Order not found', style: AppTypography.titleMedium),
-              ]),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.receipt_long_outlined,
+                        size: 48, color: AppColors.textSecondary),
+                    const Gap(12),
+                    Text('Order not found', style: AppTypography.titleMedium),
+                  ]),
             );
           }
+
           final order = data['order'] as Map<String, dynamic>;
           final history = data['history'] as List? ?? [];
           final status = order['status']?.toString() ?? 'pending';
@@ -55,107 +109,153 @@ class OrderDetailScreen extends ConsumerWidget {
               ? DateTime.parse(order['scheduled_at'].toString())
               : null;
           final appStatus = _mapStatus(status);
+          final isDone = status == 'done';
+
+          final paymentStatus =
+              order['payment_status']?.toString() ??
+              paymentAsync.valueOrNull?['payment_status']?.toString();
+          final invoiceUrl =
+              order['xendit_invoice_url']?.toString() ??
+              paymentAsync.valueOrNull?['invoice_url']?.toString();
+          final amount = ((order['total_amount'] as num?) ?? 0).toInt();
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _card([
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Expanded(
-                    child: Text(
-                      'Order #${(order['id']?.toString() ?? '').substring(0, 8)}',
-                      style: AppTypography.titleLarge,
-                    ),
-                  ),
-                  AppStatusIndicator(status: appStatus),
-                ]),
-                const Gap(12),
-                if (scheduledAt != null)
-                  _row(Icons.calendar_today,
-                      DateFormat('MMM dd, yyyy • HH:mm').format(scheduledAt)),
-                const Gap(8),
-                _row(Icons.location_on_outlined,
-                    order['location_address']?.toString() ?? 'No address'),
-                const Gap(8),
-                _row(Icons.directions_car,
-                    '${order['vehicle_type']?.toString().toUpperCase() ?? ''} • ${order['vehicle_plate'] ?? ''}'),
-                const Gap(8),
-                _row(Icons.payments_outlined,
-                    'Rp ${NumberFormat('#,###').format(((order['total_amount'] as num?) ?? 0).toInt())}'),
-              ]),
-              const Gap(16),
-              if (order['assigned_employee_id'] != null) ...[
-                _card([
-                  Text('Assigned Washer', style: AppTypography.titleMedium),
-                  const Gap(8),
-                  Row(children: [
-                    const CircleAvatar(
-                      radius: 20,
-                      backgroundColor: AppColors.primaryLight,
-                      child: Icon(Icons.person, color: AppColors.primary),
-                    ),
-                    const Gap(12),
-                    Text('Washer assigned', style: AppTypography.bodyMedium),
-                  ]),
-                ]),
-                const Gap(16),
-              ],
-              if (history.isNotEmpty) ...[
-                _card([
-                  Text('Status History', style: AppTypography.titleMedium),
-                  const Gap(12),
-                  ...history.map((h) {
-                    final hMap = h as Map<String, dynamic>;
-                    final changedAt = hMap['changed_at'] != null
-                        ? DateTime.parse(hMap['changed_at'].toString())
-                        : null;
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Row(children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.primary,
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Order info card
+                  _card([
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Order #${(order['id']?.toString() ?? '').substring(0, 8).toUpperCase()}',
+                              style: AppTypography.titleLarge,
+                            ),
                           ),
+                          AppStatusIndicator(status: appStatus),
+                        ]),
+                    const Gap(12),
+                    if (scheduledAt != null)
+                      _row(Icons.calendar_today,
+                          DateFormat('MMM dd, yyyy • HH:mm').format(scheduledAt)),
+                    const Gap(8),
+                    _row(Icons.location_on_outlined,
+                        order['location_address']?.toString() ?? 'No address'),
+                    const Gap(8),
+                    _row(
+                        Icons.directions_car,
+                        '${order['vehicle_type']?.toString().toUpperCase() ?? ''} • ${order['vehicle_plate'] ?? ''}'),
+                    const Gap(8),
+                    _row(Icons.payments_outlined,
+                        'Rp ${NumberFormat('#,###').format(amount)}'),
+                  ]),
+                  const Gap(16),
+
+                  // Washer card
+                  if (order['assigned_employee_id'] != null) ...[
+                    _card([
+                      Text('Assigned Washer', style: AppTypography.titleMedium),
+                      const Gap(8),
+                      Row(children: [
+                        const CircleAvatar(
+                          radius: 20,
+                          backgroundColor: AppColors.primaryLight,
+                          child: Icon(Icons.person, color: AppColors.primary),
                         ),
                         const Gap(12),
-                        Expanded(
-                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text(
-                              hMap['status']?.toString().replaceAll('_', ' ').toUpperCase() ?? '',
-                              style: AppTypography.labelSmall.copyWith(
-                                  color: AppColors.primary, fontWeight: FontWeight.w600),
-                            ),
-                            if (changedAt != null)
-                              Text(DateFormat('MMM dd, HH:mm').format(changedAt),
-                                  style: AppTypography.labelSmall
-                                      .copyWith(color: AppColors.textSecondary)),
-                          ]),
-                        ),
+                        Text('Washer assigned', style: AppTypography.bodyMedium),
                       ]),
-                    );
-                  }),
-                ]),
-                const Gap(16),
-              ],
-              if (status != 'done' && status != 'cancelled')
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.push('/customer/tracking/$bookingId'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(color: AppColors.primary),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                    ]),
+                    const Gap(16),
+                  ],
+
+                  // Payment card — shown only for completed orders
+                  if (isDone) ...[
+                    _PaymentCard(
+                      paymentStatus: paymentStatus,
+                      amount: amount,
+                      invoiceUrl: invoiceUrl,
+                      loading: _payLoading,
+                      onPay: () => _onPay(
+                          paymentStatus == 'pending' ? invoiceUrl : null),
                     ),
-                    child: const Text('Track Order'),
-                  ),
-                ),
-            ]),
+                    const Gap(16),
+                  ],
+
+                  // Status history
+                  if (history.isNotEmpty) ...[
+                    _card([
+                      Text('Status History', style: AppTypography.titleMedium),
+                      const Gap(12),
+                      ...history.map((h) {
+                        final hMap = h as Map<String, dynamic>;
+                        final changedAt = hMap['changed_at'] != null
+                            ? DateTime.parse(hMap['changed_at'].toString())
+                            : null;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: Row(children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.primary),
+                            ),
+                            const Gap(12),
+                            Expanded(
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      hMap['status']
+                                              ?.toString()
+                                              .replaceAll('_', ' ')
+                                              .toUpperCase() ??
+                                          '',
+                                      style: AppTypography.labelSmall.copyWith(
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                    if (changedAt != null)
+                                      Text(
+                                          DateFormat('MMM dd, HH:mm')
+                                              .format(changedAt),
+                                          style: AppTypography.labelSmall
+                                              .copyWith(
+                                                  color:
+                                                      AppColors.textSecondary)),
+                                  ]),
+                            ),
+                          ]),
+                        );
+                      }),
+                    ]),
+                    const Gap(16),
+                  ],
+
+                  // Track button
+                  if (status != 'done' && status != 'cancelled')
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => context
+                            .push('/customer/tracking/${widget.bookingId}'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: const BorderSide(color: AppColors.primary),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(AppSpacing.radiusMd)),
+                        ),
+                        child: const Text('Track Order'),
+                      ),
+                    ),
+                ]),
           );
         },
       ),
@@ -164,12 +264,17 @@ class OrderDetailScreen extends ConsumerWidget {
 
   AppStatus _mapStatus(String s) {
     switch (s) {
-      case 'confirmed': return AppStatus.confirmed;
+      case 'confirmed':
+        return AppStatus.confirmed;
       case 'on_the_way':
-      case 'in_progress': return AppStatus.inProgress;
-      case 'done': return AppStatus.completed;
-      case 'cancelled': return AppStatus.cancelled;
-      default: return AppStatus.pending;
+      case 'in_progress':
+        return AppStatus.inProgress;
+      case 'done':
+        return AppStatus.completed;
+      case 'cancelled':
+        return AppStatus.cancelled;
+      default:
+        return AppStatus.pending;
     }
   }
 
@@ -180,7 +285,10 @@ class OrderDetailScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        boxShadow: const [BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 2))],
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 2))
+        ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
     );
@@ -190,7 +298,174 @@ class OrderDetailScreen extends ConsumerWidget {
     return Row(children: [
       Icon(icon, size: 16, color: AppColors.textSecondary),
       const Gap(8),
-      Expanded(child: Text(text, style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary))),
+      Expanded(
+          child: Text(text,
+              style: AppTypography.bodyMedium
+                  .copyWith(color: AppColors.textSecondary))),
     ]);
+  }
+}
+
+// ─────────────────────────────────────────────────
+// Payment card widget
+// ─────────────────────────────────────────────────
+
+class _PaymentCard extends StatelessWidget {
+  final String? paymentStatus;
+  final int amount;
+  final String? invoiceUrl;
+  final bool loading;
+  final VoidCallback onPay;
+
+  const _PaymentCard({
+    required this.paymentStatus,
+    required this.amount,
+    required this.invoiceUrl,
+    required this.loading,
+    required this.onPay,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isPaid = paymentStatus == 'paid';
+    final isPending = paymentStatus == 'pending';
+    final isExpired = paymentStatus == 'expired';
+
+    Color headerColor;
+    IconData headerIcon;
+    String headerLabel;
+
+    if (isPaid) {
+      headerColor = AppColors.success;
+      headerIcon = Icons.check_circle_rounded;
+      headerLabel = 'Payment Complete';
+    } else if (isExpired) {
+      headerColor = AppColors.error;
+      headerIcon = Icons.cancel_rounded;
+      headerLabel = 'Payment Expired';
+    } else {
+      headerColor = AppColors.warning;
+      headerIcon = Icons.schedule_rounded;
+      headerLabel = isPending ? 'Payment Pending' : 'Payment Due';
+    }
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        boxShadow: const [
+          BoxShadow(color: Color(0x0A000000), blurRadius: 10, offset: Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header band
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: headerColor.withValues(alpha: 0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(children: [
+              Icon(headerIcon, color: headerColor, size: 18),
+              const Gap(8),
+              Text(headerLabel,
+                  style: AppTypography.labelLarge
+                      .copyWith(color: headerColor, fontWeight: FontWeight.w700)),
+            ]),
+          ),
+
+          // Body
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Total Amount',
+                          style: AppTypography.bodyMedium
+                              .copyWith(color: AppColors.textSecondary)),
+                      Text(
+                        'Rp ${NumberFormat('#,###').format(amount)}',
+                        style: AppTypography.titleMedium.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ]),
+
+                if (!isPaid) ...[
+                  const Gap(16),
+                  // Xendit logo/label
+                  Row(children: [
+                    const Icon(Icons.shield_rounded,
+                        size: 14, color: AppColors.textSecondary),
+                    const Gap(4),
+                    Text('Secured by Xendit',
+                        style: AppTypography.labelSmall
+                            .copyWith(color: AppColors.textSecondary)),
+                  ]),
+                  const Gap(14),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      onPressed: loading ? null : onPay,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor:
+                            AppColors.primary.withValues(alpha: 0.5),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: loading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.open_in_new_rounded, size: 18),
+                      label: Text(
+                        loading
+                            ? 'Creating invoice...'
+                            : isPending
+                                ? 'Complete Payment'
+                                : isExpired
+                                    ? 'Retry Payment'
+                                    : 'Pay Now',
+                        style: AppTypography.labelLarge
+                            .copyWith(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+
+                if (isPaid) ...[
+                  const Gap(12),
+                  Row(children: [
+                    const Icon(Icons.verified_rounded,
+                        color: AppColors.success, size: 16),
+                    const Gap(6),
+                    Text('Thank you! Payment received.',
+                        style: AppTypography.bodyMedium
+                            .copyWith(color: AppColors.success)),
+                  ]),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
