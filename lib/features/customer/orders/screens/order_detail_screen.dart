@@ -11,6 +11,7 @@ import 'package:clean_ride/core/utils/web_navigator.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
+import 'package:clean_ride/core/utils/datetime_parse.dart';
 import 'package:clean_ride/core/widgets/app_status_indicator.dart';
 import 'package:clean_ride/data/providers/orders_provider.dart';
 import 'package:clean_ride/data/providers/payment_provider.dart';
@@ -204,9 +205,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
           final history = data['history'] as List? ?? [];
           final status = order['status']?.toString() ?? 'pending';
           final isDone = status == 'done';
-          final scheduledAt = order['scheduled_at'] != null
-              ? DateTime.parse(order['scheduled_at'].toString())
-              : null;
+          final scheduledAt = parseServerDateTime(order['scheduled_at']);
           final appStatus = _mapStatus(status);
           final amount = ((order['total_amount'] as num?) ?? 0).toInt();
 
@@ -309,9 +308,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                       const Gap(12),
                       ...history.map((h) {
                         final hMap = h as Map<String, dynamic>;
-                        final changedAt = hMap['changed_at'] != null
-                            ? DateTime.parse(hMap['changed_at'].toString())
-                            : null;
+                        final changedAt = parseServerDateTime(hMap['changed_at']);
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: Row(children: [

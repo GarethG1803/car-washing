@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:clean_ride/core/network/api_client.dart';
+import 'package:clean_ride/core/utils/datetime_parse.dart';
 import 'package:clean_ride/data/models/washer_profile.dart';
 
 final washerProfileProvider = FutureProvider<WasherProfile>((ref) async {
@@ -18,7 +19,7 @@ final washerProfileProvider = FutureProvider<WasherProfile>((ref) async {
       completedJobs: data['completed_jobs'] ?? 0,
       earnings: (data['earnings'] ?? 0).toDouble(),
       specialties: ['Premium Detail', 'Ceramic Coating', 'Paint Correction'], // future
-      joinedDate: DateTime.tryParse(data['joined_date']?.toString() ?? '') ?? DateTime.now(),
+      joinedDate: parseServerDateTime(data['joined_date']) ?? DateTime.now(),
     );
   }
   throw Exception('Failed to load profile');

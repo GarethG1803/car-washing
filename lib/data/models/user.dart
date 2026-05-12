@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:clean_ride/core/utils/datetime_parse.dart';
 
 enum UserRole { customer, washer, admin }
 
@@ -93,9 +94,8 @@ class User {
       phone: json['phone']?.toString() ?? '',
       avatarUrl: json['avatar_url']?.toString(),
       role: parsedRole,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'].toString())
-          : DateTime.now(),
+      createdAt:
+          parseServerDateTime(json['created_at']) ?? DateTime.now(),
       isActive: json['is_active'] as bool? ?? true,
     );
   }

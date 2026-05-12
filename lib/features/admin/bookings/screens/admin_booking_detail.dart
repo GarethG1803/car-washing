@@ -9,6 +9,7 @@ import 'package:clean_ride/core/widgets/app_status_indicator.dart';
 import 'package:clean_ride/data/providers/admin_orders_provider.dart';
 import 'package:clean_ride/data/providers/users_provider.dart';
 import 'package:clean_ride/core/network/api_client.dart';
+import 'package:clean_ride/core/utils/datetime_parse.dart';
 import 'package:gap/gap.dart';
 
 class AdminBookingDetail extends ConsumerWidget {
@@ -304,9 +305,7 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
     final history = widget.data['history'] as List? ?? [];
     final status = order['status']?.toString() ?? 'pending';
     final appStatus = _appStatus(status);
-    final scheduledAt = order['scheduled_at'] != null
-        ? DateTime.tryParse(order['scheduled_at'].toString())
-        : null;
+    final scheduledAt = parseServerDateTime(order['scheduled_at']);
     final plate = order['vehicle_plate']?.toString() ?? '—';
     final vehicleType = order['vehicle_type']?.toString().toUpperCase() ?? '—';
     final address = order['location_address']?.toString() ?? '—';
@@ -449,9 +448,7 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
               const Gap(12),
               ...history.map((h) {
                 final hMap = h as Map<String, dynamic>;
-                final changedAt = hMap['changed_at'] != null
-                    ? DateTime.tryParse(hMap['changed_at'].toString())
-                    : null;
+                final changedAt = parseServerDateTime(hMap['changed_at']);
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: Row(children: [

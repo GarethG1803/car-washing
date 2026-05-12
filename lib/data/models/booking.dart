@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:clean_ride/core/utils/datetime_parse.dart';
 
 enum BookingStatus {
   pending,
@@ -230,9 +231,8 @@ class Booking {
       default:
         status = BookingStatus.pending;
     }
-    final scheduledAt = json['scheduled_at'] != null
-        ? DateTime.parse(json['scheduled_at'].toString())
-        : DateTime.now();
+    final scheduledAt =
+        parseServerDateTime(json['scheduled_at']) ?? DateTime.now();
     return Booking(
       id: json['id']?.toString() ?? '',
       customerId: json['customer_id']?.toString() ??
@@ -266,9 +266,8 @@ class Booking {
       notes: json['notes']?.toString(),
       serviceName: json['service_name']?.toString(),
       paymentStatus: json['payment_status']?.toString(),
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'].toString())
-          : DateTime.now(),
+      createdAt:
+          parseServerDateTime(json['created_at']) ?? DateTime.now(),
     );
   }
 }

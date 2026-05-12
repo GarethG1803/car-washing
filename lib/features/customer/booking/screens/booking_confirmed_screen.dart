@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:clean_ride/core/utils/datetime_parse.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
@@ -18,8 +19,7 @@ class BookingConfirmedScreen extends ConsumerWidget {
     final orderId = order?['id']?.toString() ?? '';
     final shortId = orderId.length > 8 ? orderId.substring(0, 8) : orderId;
     final scheduledRaw = order?['scheduled_at']?.toString();
-    final scheduledAt =
-        scheduledRaw != null ? DateTime.tryParse(scheduledRaw) : null;
+    final scheduledAt = parseServerDateTime(scheduledRaw);
     final dateStr = scheduledAt != null
         ? DateFormat('EEE, MMM dd • HH:mm').format(scheduledAt)
         : '—';
