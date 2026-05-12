@@ -1,5 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:clean_ride/data/models/user.dart';
+import 'package:clean_ride/features/auth/providers/auth_provider.dart';
 
 // Auth screens
 import 'package:clean_ride/features/auth/screens/welcome_screen.dart';
@@ -62,10 +65,67 @@ import 'package:clean_ride/features/admin/promotions/screens/promotions_screen.d
 import 'package:clean_ride/features/admin/inventory/screens/inventory_management_screen.dart';
 import 'package:clean_ride/features/admin/supply/screens/admin_supply_requests_screen.dart';
 
+/// Notifies GoRouter to re-evaluate the redirect whenever auth state changes.
+class _RouterNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
+
+final _routerNotifierProvider = Provider<_RouterNotifier>((ref) {
+  final notifier = _RouterNotifier();
+  ref.listen(isAuthenticatedProvider, (_, __) => notifier.notify());
+  ref.listen(sessionProvider, (_, __) => notifier.notify());
+  return notifier;
+});
+
+String _homeForRole(UserRole role) {
+  switch (role) {
+    case UserRole.customer:
+      return '/customer/home';
+    case UserRole.washer:
+      return '/washer/dashboard';
+    case UserRole.admin:
+      return '/admin/dashboard';
+  }
+}
+
 /// Provides the app-wide GoRouter instance.
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final notifier = ref.watch(_routerNotifierProvider);
+
+  String? redirect(BuildContext context, GoRouterState state) {
+    final sessionAsync = ref.read(sessionProvider);
+    if (sessionAsync.isLoading) return null;
+
+    final isAuth = ref.read(isAuthenticatedProvider);
+    final user = ref.read(currentUserProvider);
+    final loc = state.matchedLocation;
+    final isPublic = loc == '/' || loc == '/login' || loc == '/register';
+
+    if (!isAuth) {
+      return isPublic ? null : '/';
+    }
+
+    if (isPublic) {
+      return _homeForRole(user!.role);
+    }
+
+    if (loc.startsWith('/customer') && user?.role != UserRole.customer) {
+      return _homeForRole(user!.role);
+    }
+    if (loc.startsWith('/washer') && user?.role != UserRole.washer) {
+      return _homeForRole(user!.role);
+    }
+    if (loc.startsWith('/admin') && user?.role != UserRole.admin) {
+      return _homeForRole(user!.role);
+    }
+
+    return null;
+  }
+
   return GoRouter(
     initialLocation: '/',
+    refreshListenable: notifier,
+    redirect: redirect,
     routes: [
       // ── Auth routes ──────────────────────────────────────────────────
       GoRoute(

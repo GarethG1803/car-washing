@@ -79,6 +79,9 @@ class OrderDetailScreen extends ConsumerWidget {
                 const Gap(8),
                 _row(Icons.directions_car,
                     '${order['vehicle_type']?.toString().toUpperCase() ?? ''} • ${order['vehicle_plate'] ?? ''}'),
+                const Gap(8),
+                _row(Icons.payments_outlined,
+                    'Rp ${NumberFormat('#,###').format(((order['total_amount'] as num?) ?? 0).toInt())}'),
               ]),
               const Gap(16),
               if (order['assigned_employee_id'] != null) ...[

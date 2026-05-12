@@ -77,6 +77,11 @@ class BookingConfirmedScreen extends ConsumerWidget {
                     const Gap(12),
                     _row('Scheduled', dateStr),
                     const Gap(12),
+                    _row('Amount', () {
+                      final amount = (order?['total_amount'] as num?)?.toInt() ?? 0;
+                      return 'Rp ${NumberFormat('#,###').format(amount)}';
+                    }()),
+                    const Gap(12),
                     _row('Status', 'Pending Confirmation'),
                   ],
                 ),

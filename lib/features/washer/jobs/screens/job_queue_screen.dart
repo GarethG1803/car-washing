@@ -229,7 +229,7 @@ class _JobList extends StatelessWidget {
                       size: 16, color: AppColors.textSecondary),
                   const Gap(6),
                   Text(
-                    '${job.vehicleId.toUpperCase()} • ${job.servicePackageId}',
+                    '${job.vehicleId.toUpperCase()} • ${job.serviceName ?? job.servicePackageId}',
                     style: AppTypography.bodyMedium,
                   ),
                 ]),

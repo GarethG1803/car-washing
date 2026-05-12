@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:clean_ride/core/network/api_client.dart';
+import 'package:clean_ride/data/providers/orders_provider.dart';
 import 'package:dio/dio.dart';
 
 class BookingFormState {
@@ -94,6 +95,7 @@ class BookingNotifier extends StateNotifier<BookingFormState> {
       if (response.data['success'] == true) {
         _ref.read(lastCreatedOrderProvider.notifier).state =
             response.data['data'] as Map<String, dynamic>?;
+        _ref.invalidate(customerOrdersProvider);
         state = state.copyWith(isSubmitting: false);
         reset();
         return null;

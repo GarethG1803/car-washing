@@ -26,6 +26,7 @@ class Booking {
   final double totalAmount;
   final double? tip;
   final String? notes;
+  final String? serviceName;
   final DateTime createdAt;
   final DateTime? completedAt;
 
@@ -45,6 +46,7 @@ class Booking {
     required this.totalAmount,
     this.tip,
     this.notes,
+    this.serviceName,
     required this.createdAt,
     this.completedAt,
   });
@@ -65,6 +67,7 @@ class Booking {
     double? totalAmount,
     double? tip,
     String? notes,
+    String? serviceName,
     DateTime? createdAt,
     DateTime? completedAt,
   }) {
@@ -84,6 +87,7 @@ class Booking {
       totalAmount: totalAmount ?? this.totalAmount,
       tip: tip ?? this.tip,
       notes: notes ?? this.notes,
+      serviceName: serviceName ?? this.serviceName,
       createdAt: createdAt ?? this.createdAt,
       completedAt: completedAt ?? this.completedAt,
     );
@@ -109,6 +113,7 @@ class Booking {
           totalAmount == other.totalAmount &&
           tip == other.tip &&
           notes == other.notes &&
+          serviceName == other.serviceName &&
           createdAt == other.createdAt &&
           completedAt == other.completedAt;
 
@@ -129,6 +134,7 @@ class Booking {
         totalAmount,
         tip,
         notes,
+        serviceName,
         createdAt,
         completedAt,
       ]);
@@ -175,8 +181,9 @@ class Booking {
       address: json['location_address']?.toString() ?? '',
       latitude: (json['location_lat'] as num?)?.toDouble() ?? 0.0,
       longitude: (json['location_lng'] as num?)?.toDouble() ?? 0.0,
-      totalAmount: 0.0,
+      totalAmount: (json['total_amount'] as num?)?.toDouble() ?? 0.0,
       notes: json['notes']?.toString(),
+      serviceName: json['service_name']?.toString(),
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'].toString())
           : DateTime.now(),

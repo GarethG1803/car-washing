@@ -305,7 +305,7 @@ class _TodayJobCard extends StatelessWidget {
             ),
             const Gap(4),
             Text(
-              '${job.vehicleId} • ${job.servicePackageId}',
+              '${job.vehicleId} • ${job.serviceName ?? job.servicePackageId}',
               style:
                   AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
             ),

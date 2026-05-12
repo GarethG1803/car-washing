@@ -61,7 +61,7 @@ class OrderCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Standard Wash', style: AppTypography.titleMedium),
+                      Text(booking.serviceName ?? 'Car Wash', style: AppTypography.titleMedium),
                       const Gap(2),
                       Text(
                         'Booking #${booking.id}',

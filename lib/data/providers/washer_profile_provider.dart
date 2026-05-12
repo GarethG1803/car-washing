@@ -13,7 +13,7 @@ final washerProfileProvider = FutureProvider<WasherProfile>((ref) async {
       userId: data['id'],
       name: data['name'],
       phone: data['phone'] ?? '',
-      rating: 4.9, // backend doesn't track ratings yet
+      rating: 0.0,
       totalJobs: data['total_jobs'] ?? 0,
       completedJobs: data['completed_jobs'] ?? 0,
       earnings: (data['earnings'] ?? 0).toDouble(),

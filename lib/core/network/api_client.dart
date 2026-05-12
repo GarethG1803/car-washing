@@ -52,6 +52,9 @@ final apiClientProvider = Provider<Dio>((ref) {
         return handler.next(options);
       },
       onError: (DioException e, handler) {
+        if (e.response?.statusCode == 401) {
+          ref.read(tokenProvider.notifier).setToken(null);
+        }
         return handler.next(e);
       },
     ),

@@ -3,6 +3,25 @@ import 'package:clean_ride/data/models/user.dart';
 import 'package:clean_ride/core/network/api_client.dart';
 import 'package:dio/dio.dart';
 
+/// Restores the logged-in user from the stored token on every app start / web
+/// refresh. Re-runs whenever [tokenProvider] changes (login / logout).
+final sessionProvider = FutureProvider<void>((ref) async {
+  final token = ref.watch(tokenProvider);
+  if (token == null) return;
+  if (ref.read(currentUserProvider) != null) return;
+  try {
+    final dio = ref.read(apiClientProvider);
+    final response = await dio.get('/auth/me');
+    if (response.data['success'] == true) {
+      final data = response.data['data'] as Map<String, dynamic>;
+      final user = User.fromJson(data['user'] as Map<String, dynamic>);
+      ref.read(currentUserProvider.notifier).state = user;
+    }
+  } on DioException {
+    ref.read(tokenProvider.notifier).setToken(null);
+  }
+});
+
 final currentUserProvider = StateProvider<User?>((ref) => null);
 
 final isAuthenticatedProvider = Provider<bool>(

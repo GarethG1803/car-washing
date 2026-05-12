@@ -13,7 +13,6 @@ class WasherProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider);
     final profileAsync = ref.watch(washerProfileProvider);
 
     // Show loading / error / data for the washers profile stats
@@ -98,35 +97,32 @@ class WasherProfileScreen extends ConsumerWidget {
                             ),
                           ),
                           const Gap(6),
-                          // Rating stars (hardcoded 4.9, replace when backend supports it)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ...List.generate(5, (index) {
-                                if (index < 4) {
-                                  return const Icon(
-                                    Icons.star_rounded,
+                          if (profile.rating > 0) ...[
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                ...List.generate(5, (index) {
+                                  return Icon(
+                                    index < profile.rating.floor()
+                                        ? Icons.star_rounded
+                                        : index < profile.rating
+                                            ? Icons.star_half_rounded
+                                            : Icons.star_outline_rounded,
                                     size: 18,
                                     color: Colors.amber,
                                   );
-                                } else {
-                                  return const Icon(
-                                    Icons.star_half_rounded,
-                                    size: 18,
-                                    color: Colors.amber,
-                                  );
-                                }
-                              }),
-                              const Gap(6),
-                              Text(
-                                '4.9',
-                                style: AppTypography.labelLarge.copyWith(
-                                  color: Colors.white,
+                                }),
+                                const Gap(6),
+                                Text(
+                                  profile.rating.toStringAsFixed(1),
+                                  style: AppTypography.labelLarge.copyWith(
+                                    color: Colors.white,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const Gap(6),
+                              ],
+                            ),
+                            const Gap(6),
+                          ],
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.md,
