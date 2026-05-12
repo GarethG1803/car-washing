@@ -1,6 +1,16 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:clean_ride/core/network/api_client.dart';
 import 'package:clean_ride/data/models/booking.dart';
+
+String _friendlyError(Object e, String fallback) {
+  if (e is DioException) {
+    final body = e.response?.data;
+    if (body is Map && body['message'] is String) return body['message'] as String;
+    return e.message ?? fallback;
+  }
+  return fallback;
+}
 
 /// Customer: re-runs when token changes (login/logout).
 final customerOrdersProvider = FutureProvider<List<Booking>>((ref) async {
@@ -50,7 +60,7 @@ class _CustomerOrderActions {
       }
       return response.data['message']?.toString() ?? 'Cancel failed';
     } catch (e) {
-      return e.toString();
+      return _friendlyError(e, 'Could not cancel');
     }
   }
 }

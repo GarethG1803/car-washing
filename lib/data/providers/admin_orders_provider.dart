@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:clean_ride/core/network/api_client.dart';
 import 'package:clean_ride/data/models/booking.dart';
@@ -26,6 +27,20 @@ final adminOrderDetailProvider =
   return null;
 });
 
+/// Extract the friendly `message` field from a Dio error response body when
+/// the server returned a 4xx (validation, conflict, not-found). Falls back to
+/// Dio's generic message if the response isn't shaped as `{message: ...}`.
+String _friendly(Object e, String fallback) {
+  if (e is DioException) {
+    final body = e.response?.data;
+    if (body is Map && body['message'] is String) {
+      return body['message'] as String;
+    }
+    return e.message ?? fallback;
+  }
+  return fallback;
+}
+
 class AdminOrderActions {
   final Ref _ref;
   AdminOrderActions(this._ref);
@@ -41,7 +56,7 @@ class AdminOrderActions {
       }
       return response.data['message']?.toString() ?? 'Failed to cancel';
     } catch (e) {
-      return e.toString();
+      return _friendly(e, 'Failed to cancel');
     }
   }
 
@@ -59,7 +74,7 @@ class AdminOrderActions {
       }
       return response.data['message']?.toString() ?? 'Failed to assign';
     } catch (e) {
-      return e.toString();
+      return _friendly(e, 'Failed to assign washer');
     }
   }
 
@@ -74,7 +89,7 @@ class AdminOrderActions {
       }
       return response.data['message'] ?? 'Failed to delete order';
     } catch (e) {
-      return e.toString();
+      return _friendly(e, 'Failed to delete order');
     }
   }
 }

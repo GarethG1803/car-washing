@@ -1,6 +1,16 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:clean_ride/core/network/api_client.dart';
 import 'package:clean_ride/data/models/booking.dart';
+
+String _friendly(Object e) {
+  if (e is DioException) {
+    final body = e.response?.data;
+    if (body is Map && body['message'] is String) return body['message'] as String;
+    return e.message ?? 'Network error';
+  }
+  return e.toString();
+}
 
 final washerJobsProvider = FutureProvider<List<Booking>>((ref) async {
   ref.watch(tokenProvider);
@@ -43,7 +53,7 @@ class WasherJobActions {
       }
       return response.data['message']?.toString() ?? 'Failed to update status';
     } catch (e) {
-      return e.toString();
+      return _friendly(e);
     }
   }
 
@@ -57,7 +67,7 @@ class WasherJobActions {
       }
       return response.data['message']?.toString() ?? 'Accept failed';
     } catch (e) {
-      return e.toString();
+      return _friendly(e);
     }
   }
 
@@ -74,7 +84,7 @@ class WasherJobActions {
       }
       return response.data['message']?.toString() ?? 'Decline failed';
     } catch (e) {
-      return e.toString();
+      return _friendly(e);
     }
   }
 }
