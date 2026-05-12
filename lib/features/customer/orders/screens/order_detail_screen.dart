@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -229,6 +230,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                       invoiceReady: _invoiceUrl != null,
                       preparingInvoice: _preparingInvoice,
                       onPay: _launchPayment,
+                      referenceId: order['xendit_invoice_id']?.toString(),
                     ),
                     const Gap(16),
                   ],
@@ -495,6 +497,7 @@ class _PaymentCard extends StatelessWidget {
   final bool invoiceReady;
   final bool preparingInvoice;
   final VoidCallback onPay;
+  final String? referenceId;
 
   const _PaymentCard({
     required this.paymentStatus,
@@ -502,22 +505,20 @@ class _PaymentCard extends StatelessWidget {
     required this.invoiceReady,
     required this.preparingInvoice,
     required this.onPay,
+    required this.referenceId,
   });
 
   @override
   Widget build(BuildContext context) {
     final isPaid = paymentStatus == 'paid';
+    if (isPaid) return _PaidCard(amount: amount, referenceId: referenceId);
+
     final isExpired = paymentStatus == 'expired';
 
     Color headerColor;
     IconData headerIcon;
     String headerTitle;
-
-    if (isPaid) {
-      headerColor = AppColors.success;
-      headerIcon = Icons.check_circle_rounded;
-      headerTitle = 'Paid';
-    } else if (isExpired) {
+    if (isExpired) {
       headerColor = AppColors.error;
       headerIcon = Icons.cancel_rounded;
       headerTitle = 'Payment Expired';
@@ -527,14 +528,11 @@ class _PaymentCard extends StatelessWidget {
       headerTitle = 'Payment Required';
     }
 
-    String buttonLabel;
-    if (preparingInvoice) {
-      buttonLabel = 'Preparing payment…';
-    } else if (isExpired) {
-      buttonLabel = 'Retry Payment';
-    } else {
-      buttonLabel = 'Pay Now  •  Rp ${NumberFormat('#,###').format(amount)}';
-    }
+    final String buttonLabel = preparingInvoice
+        ? 'Preparing payment…'
+        : isExpired
+            ? 'Retry Payment'
+            : 'Pay Now  •  Rp ${NumberFormat('#,###').format(amount)}';
 
     return Container(
       width: double.infinity,
@@ -581,69 +579,202 @@ class _PaymentCard extends StatelessWidget {
                     .copyWith(fontWeight: FontWeight.w700),
               ),
             ]),
-            if (isPaid) ...[
-              const Gap(12),
-              Row(children: [
-                const Icon(Icons.verified_rounded,
-                    color: AppColors.success, size: 16),
-                const Gap(6),
-                Text('Payment received. Thank you!',
-                    style: AppTypography.bodyMedium
-                        .copyWith(color: AppColors.success)),
-              ]),
-            ],
-            if (!isPaid) ...[
-              const Gap(6),
-              Row(children: [
-                const Icon(Icons.shield_rounded,
-                    size: 13, color: AppColors.textSecondary),
-                const Gap(4),
-                Text('Secured by Xendit',
-                    style: AppTypography.labelSmall
-                        .copyWith(color: AppColors.textSecondary)),
-              ]),
-              const Gap(14),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed:
-                      (invoiceReady && !preparingInvoice) ? onPay : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppColors.divider,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: preparingInvoice
-                      ? Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: AppColors.textSecondary),
-                            ),
-                            const Gap(10),
-                            Text(buttonLabel,
-                                style: AppTypography.labelLarge.copyWith(
-                                    color: AppColors.textSecondary)),
-                          ],
-                        )
-                      : Text(buttonLabel,
-                          style: AppTypography.labelLarge.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600)),
+            const Gap(6),
+            Row(children: [
+              const Icon(Icons.shield_rounded,
+                  size: 13, color: AppColors.textSecondary),
+              const Gap(4),
+              Text('Secured by Xendit',
+                  style: AppTypography.labelSmall
+                      .copyWith(color: AppColors.textSecondary)),
+            ]),
+            const Gap(14),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed:
+                    (invoiceReady && !preparingInvoice) ? onPay : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: AppColors.divider,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
+                child: preparingInvoice
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.textSecondary),
+                          ),
+                          const Gap(10),
+                          Text(buttonLabel,
+                              style: AppTypography.labelLarge.copyWith(
+                                  color: AppColors.textSecondary)),
+                        ],
+                      )
+                    : Text(buttonLabel,
+                        style: AppTypography.labelLarge.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600)),
               ),
-            ],
+            ),
           ]),
         ),
       ]),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Paid receipt card
+// ─────────────────────────────────────────────
+
+class _PaidCard extends StatelessWidget {
+  final int amount;
+  final String? referenceId;
+
+  const _PaidCard({required this.amount, required this.referenceId});
+
+  Future<void> _copyRef(BuildContext context) async {
+    if (referenceId == null) return;
+    await Clipboard.setData(ClipboardData(text: referenceId!));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Reference ID copied'),
+        backgroundColor: AppColors.success,
+        duration: Duration(seconds: 2),
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.success.withValues(alpha: 0.08),
+            AppColors.success.withValues(alpha: 0.02),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(
+            color: AppColors.success.withValues(alpha: 0.25), width: 1.5),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Big check + heading
+            Row(children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: AppColors.success,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check_rounded,
+                    color: Colors.white, size: 24),
+              ),
+              const Gap(12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Already Paid',
+                      style: AppTypography.titleMedium.copyWith(
+                          color: AppColors.success,
+                          fontWeight: FontWeight.w700)),
+                  Text('Thank you for your payment',
+                      style: AppTypography.labelSmall
+                          .copyWith(color: AppColors.textSecondary)),
+                ],
+              ),
+            ]),
+            const Gap(16),
+            Container(
+              width: double.infinity,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                    color: AppColors.success.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Amount Paid',
+                            style: AppTypography.bodyMedium.copyWith(
+                                color: AppColors.textSecondary)),
+                        Text(
+                          'Rp ${NumberFormat('#,###').format(amount)}',
+                          style: AppTypography.titleMedium.copyWith(
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w700),
+                        ),
+                      ]),
+                  if (referenceId != null) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: Divider(height: 1, color: AppColors.divider),
+                    ),
+                    Row(children: [
+                      Text('Reference ID',
+                          style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.textSecondary)),
+                      const Spacer(),
+                      Flexible(
+                        child: Text(
+                          referenceId!,
+                          style: AppTypography.labelSmall.copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'monospace'),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const Gap(6),
+                      InkWell(
+                        onTap: () => _copyRef(context),
+                        borderRadius: BorderRadius.circular(6),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(Icons.copy_rounded,
+                              size: 14, color: AppColors.primary),
+                        ),
+                      ),
+                    ]),
+                  ],
+                ],
+              ),
+            ),
+            const Gap(12),
+            Row(children: [
+              const Icon(Icons.shield_rounded,
+                  size: 12, color: AppColors.textSecondary),
+              const Gap(4),
+              Text('Payment processed by Xendit',
+                  style: AppTypography.labelSmall
+                      .copyWith(color: AppColors.textSecondary)),
+            ]),
+          ],
+        ),
+      ),
     );
   }
 }
