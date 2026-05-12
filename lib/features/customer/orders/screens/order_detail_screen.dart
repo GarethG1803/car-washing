@@ -107,6 +107,43 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     }
   }
 
+  Future<void> _onCancelOrder() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel this booking?'),
+        content: const Text('This can\'t be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Keep booking')),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Yes, cancel',
+                style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
+    final error = await ref
+        .read(customerOrderActionsProvider)
+        .cancel(widget.bookingId);
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(error),
+        backgroundColor: AppColors.error,
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Booking cancelled'),
+        backgroundColor: AppColors.success,
+      ));
+    }
+  }
+
   void _refresh() {
     setState(() {
       _invoiceUrl = null;
@@ -320,7 +357,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                   ],
 
                   // Track
-                  if (status != 'done' && status != 'cancelled')
+                  if (status != 'done' && status != 'cancelled' &&
+                      status != 'no_show' && status != 'failed')
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
@@ -337,6 +375,27 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                         child: const Text('Track Order'),
                       ),
                     ),
+
+                  // Cancel — only before the washer has accepted
+                  if (status == 'pending' || status == 'assigned') ...[
+                    const Gap(12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _onCancelOrder,
+                        icon: const Icon(Icons.cancel_outlined, size: 18),
+                        label: const Text('Cancel Order'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          side: const BorderSide(color: AppColors.error),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                  AppSpacing.radiusMd)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ]),
           );
         },

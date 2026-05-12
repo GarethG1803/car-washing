@@ -76,11 +76,11 @@ class _JobDetailView extends ConsumerStatefulWidget {
 class _JobDetailViewState extends ConsumerState<_JobDetailView> {
   bool _isUpdating = false;
 
-  Future<void> _updateStatus(String newStatus) async {
+  Future<void> _updateStatus(String newStatus, {String? reason}) async {
     setState(() => _isUpdating = true);
     final error = await ref
         .read(washerJobActionsProvider)
-        .updateStatus(widget.job.id, newStatus);
+        .updateStatus(widget.job.id, newStatus, reason: reason);
     if (!mounted) return;
     setState(() => _isUpdating = false);
     if (error != null) {
@@ -95,6 +95,82 @@ class _JobDetailViewState extends ConsumerState<_JobDetailView> {
         ),
       );
     }
+  }
+
+  Future<void> _onAccept() async {
+    setState(() => _isUpdating = true);
+    final error =
+        await ref.read(washerJobActionsProvider).accept(widget.job.id);
+    if (!mounted) return;
+    setState(() => _isUpdating = false);
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
+  Future<void> _onDecline() async {
+    final reason = await _promptReason(
+      title: 'Decline this job?',
+      hint: 'Optional — let admin know why',
+    );
+    if (reason == null || !mounted) return; // user cancelled the dialog
+    setState(() => _isUpdating = true);
+    final error = await ref
+        .read(washerJobActionsProvider)
+        .decline(widget.job.id, reason: reason.isEmpty ? null : reason);
+    if (!mounted) return;
+    setState(() => _isUpdating = false);
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: AppColors.error),
+      );
+    }
+  }
+
+  Future<void> _reportProblem(String status) async {
+    final isNoShow = status == 'no_show';
+    final reason = await _promptReason(
+      title: isNoShow ? 'Customer not home?' : 'What went wrong?',
+      hint: isNoShow
+          ? 'Optional notes'
+          : 'Required — describe the problem',
+      requireReason: !isNoShow,
+    );
+    if (reason == null) return;
+    await _updateStatus(status, reason: reason.isEmpty ? null : reason);
+  }
+
+  Future<String?> _promptReason({
+    required String title,
+    required String hint,
+    bool requireReason = false,
+  }) async {
+    final ctrl = TextEditingController();
+    return showDialog<String?>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: ctrl,
+          maxLines: 3,
+          decoration: InputDecoration(hintText: hint),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(null),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              if (requireReason && ctrl.text.trim().isEmpty) return;
+              Navigator.of(ctx).pop(ctrl.text.trim());
+            },
+            child: const Text('Submit'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _call(String phone) async {
@@ -115,6 +191,8 @@ class _JobDetailViewState extends ConsumerState<_JobDetailView> {
 
   Color get _statusColor {
     switch (widget.job.status) {
+      case BookingStatus.assigned:
+        return AppColors.warning;
       case BookingStatus.confirmed:
         return AppColors.primary;
       case BookingStatus.washerEnRoute:
@@ -124,6 +202,8 @@ class _JobDetailViewState extends ConsumerState<_JobDetailView> {
       case BookingStatus.completed:
         return AppColors.success;
       case BookingStatus.cancelled:
+      case BookingStatus.noShow:
+      case BookingStatus.failed:
         return AppColors.error;
       default:
         return AppColors.warning;
@@ -132,6 +212,8 @@ class _JobDetailViewState extends ConsumerState<_JobDetailView> {
 
   String get _statusLabel {
     switch (widget.job.status) {
+      case BookingStatus.assigned:
+        return 'Accept or decline this job';
       case BookingStatus.confirmed:
         return 'Ready to start';
       case BookingStatus.washerEnRoute:
@@ -142,6 +224,10 @@ class _JobDetailViewState extends ConsumerState<_JobDetailView> {
         return 'Job complete';
       case BookingStatus.cancelled:
         return 'Cancelled';
+      case BookingStatus.noShow:
+        return 'Customer no-show';
+      case BookingStatus.failed:
+        return 'Could not complete';
       default:
         return 'Pending';
     }
@@ -336,6 +422,33 @@ class _JobDetailViewState extends ConsumerState<_JobDetailView> {
 
     Widget? content;
     switch (widget.job.status) {
+      case BookingStatus.assigned:
+        // Accept / Decline gate before the washer commits to the job
+        content = Column(children: [
+          _actionButton(
+            label: 'Accept Job',
+            icon: Icons.check_circle_rounded,
+            color: AppColors.success,
+            onPressed: _onAccept,
+          ),
+          const Gap(10),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: OutlinedButton.icon(
+              onPressed: _onDecline,
+              icon: const Icon(Icons.cancel_outlined, size: 18),
+              label: const Text('Decline'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.error,
+                side: const BorderSide(color: AppColors.error),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ]);
+        break;
       case BookingStatus.confirmed:
         content = _actionButton(
           label: 'Start Driving',
@@ -345,20 +458,42 @@ class _JobDetailViewState extends ConsumerState<_JobDetailView> {
         );
         break;
       case BookingStatus.washerEnRoute:
-        content = _actionButton(
-          label: 'I\'ve Arrived — Start Wash',
-          icon: Icons.local_car_wash_rounded,
-          color: AppColors.success,
-          onPressed: () => _updateStatus('in_progress'),
-        );
+        content = Column(children: [
+          _actionButton(
+            label: 'I\'ve Arrived — Start Wash',
+            icon: Icons.local_car_wash_rounded,
+            color: AppColors.success,
+            onPressed: () => _updateStatus('in_progress'),
+          ),
+          const Gap(8),
+          TextButton.icon(
+            onPressed: () => _reportProblem('no_show'),
+            icon: const Icon(Icons.person_off_rounded,
+                size: 16, color: AppColors.textSecondary),
+            label: Text('Customer not home',
+                style: AppTypography.labelLarge
+                    .copyWith(color: AppColors.textSecondary)),
+          ),
+        ]);
         break;
       case BookingStatus.inProgress:
-        content = _actionButton(
-          label: 'Mark Complete',
-          icon: Icons.check_circle_rounded,
-          color: AppColors.success,
-          onPressed: () => _updateStatus('done'),
-        );
+        content = Column(children: [
+          _actionButton(
+            label: 'Mark Complete',
+            icon: Icons.check_circle_rounded,
+            color: AppColors.success,
+            onPressed: () => _updateStatus('done'),
+          ),
+          const Gap(8),
+          TextButton.icon(
+            onPressed: () => _reportProblem('failed'),
+            icon: const Icon(Icons.report_problem_outlined,
+                size: 16, color: AppColors.textSecondary),
+            label: Text('Couldn\'t complete',
+                style: AppTypography.labelLarge
+                    .copyWith(color: AppColors.textSecondary)),
+          ),
+        ]);
         break;
       default:
         content = null;

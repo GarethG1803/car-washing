@@ -2,11 +2,14 @@ import 'package:flutter/foundation.dart';
 
 enum BookingStatus {
   pending,
+  assigned,
   confirmed,
   washerEnRoute,
   inProgress,
   completed,
   cancelled,
+  noShow,
+  failed,
 }
 
 @immutable
@@ -208,6 +211,8 @@ class Booking {
 
     BookingStatus status;
     switch (json['status']?.toString()) {
+      case 'assigned':
+        status = BookingStatus.assigned;
       case 'confirmed':
         status = BookingStatus.confirmed;
       case 'on_the_way':
@@ -218,6 +223,10 @@ class Booking {
         status = BookingStatus.completed;
       case 'cancelled':
         status = BookingStatus.cancelled;
+      case 'no_show':
+        status = BookingStatus.noShow;
+      case 'failed':
+        status = BookingStatus.failed;
       default:
         status = BookingStatus.pending;
     }

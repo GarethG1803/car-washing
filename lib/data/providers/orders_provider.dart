@@ -27,3 +27,30 @@ final orderDetailProvider =
   }
   return null;
 });
+
+/// Customer self-cancel — returns null on success or error message string.
+final customerOrderActionsProvider =
+    Provider((ref) => _CustomerOrderActions(ref));
+
+class _CustomerOrderActions {
+  final Ref _ref;
+  _CustomerOrderActions(this._ref);
+
+  Future<String?> cancel(String orderId, {String? reason}) async {
+    try {
+      final dio = _ref.read(apiClientProvider);
+      final response = await dio.post(
+        '/orders/my/$orderId/cancel',
+        data: {if (reason != null) 'reason': reason},
+      );
+      if (response.data['success'] == true) {
+        _ref.invalidate(customerOrdersProvider);
+        _ref.invalidate(orderDetailProvider(orderId));
+        return null;
+      }
+      return response.data['message']?.toString() ?? 'Cancel failed';
+    } catch (e) {
+      return e.toString();
+    }
+  }
+}

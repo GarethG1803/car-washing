@@ -18,6 +18,8 @@ class OrderCard extends StatelessWidget {
     switch (booking.status) {
       case BookingStatus.pending:
         return AppStatus.pending;
+      case BookingStatus.assigned:
+        return AppStatus.assigned;
       case BookingStatus.confirmed:
         return AppStatus.confirmed;
       case BookingStatus.washerEnRoute:
@@ -27,6 +29,10 @@ class OrderCard extends StatelessWidget {
         return AppStatus.completed;
       case BookingStatus.cancelled:
         return AppStatus.cancelled;
+      case BookingStatus.noShow:
+        return AppStatus.noShow;
+      case BookingStatus.failed:
+        return AppStatus.failed;
     }
   }
 

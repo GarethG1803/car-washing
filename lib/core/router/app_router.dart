@@ -26,10 +26,7 @@ import 'package:clean_ride/features/customer/payments/screens/wallet_screen.dart
 import 'package:clean_ride/features/customer/profile/screens/vehicle_management_screen.dart';
 import 'package:clean_ride/features/customer/profile/screens/add_vehicle_screen.dart';
 import 'package:clean_ride/features/customer/profile/screens/edit_profile_screen.dart';
-import 'package:clean_ride/features/customer/loyalty/screens/loyalty_screen.dart';
-import 'package:clean_ride/features/customer/loyalty/screens/referral_screen.dart';
 import 'package:clean_ride/features/customer/notifications/screens/notifications_screen.dart';
-import 'package:clean_ride/features/customer/reviews/screens/rate_service_screen.dart';
 
 // Washer shell
 import 'package:clean_ride/features/washer/shell/washer_shell.dart';
@@ -61,7 +58,6 @@ import 'package:clean_ride/features/admin/customers/screens/customer_crm_detail.
 import 'package:clean_ride/features/admin/employees/screens/payroll_screen.dart';
 import 'package:clean_ride/features/admin/services/screens/service_management_screen.dart';
 import 'package:clean_ride/features/admin/analytics/screens/analytics_screen.dart';
-import 'package:clean_ride/features/admin/promotions/screens/promotions_screen.dart';
 import 'package:clean_ride/features/admin/inventory/screens/inventory_management_screen.dart';
 import 'package:clean_ride/features/admin/supply/screens/admin_supply_requests_screen.dart';
 
@@ -236,13 +232,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/customer/profile/edit',
         builder: (context, state) => const EditProfileScreen(),
       ),
+      // Loyalty + referral hidden until backend is built — show "Coming soon"
+      // instead of pretending to track points that don't exist anywhere.
       GoRoute(
         path: '/customer/loyalty',
-        builder: (context, state) => const LoyaltyScreen(),
+        builder: (context, state) =>
+            const _ComingSoonScreen(title: 'Loyalty Rewards'),
       ),
       GoRoute(
         path: '/customer/loyalty/referral',
-        builder: (context, state) => const ReferralScreen(),
+        builder: (context, state) =>
+            const _ComingSoonScreen(title: 'Referral Program'),
       ),
       GoRoute(
         path: '/customer/notifications',
@@ -250,9 +250,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/customer/rate/:bookingId',
-        builder: (context, state) => RateServiceScreen(
-          bookingId: state.pathParameters['bookingId']!,
-        ),
+        builder: (context, state) =>
+            const _ComingSoonScreen(title: 'Rate Your Wash'),
       ),
 
             // ── Washer non-shell routes ────────────────────────────────────
@@ -426,7 +425,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/admin/promotions',
-        builder: (context, state) => const PromotionsScreen(),
+        builder: (context, state) =>
+            const _ComingSoonScreen(title: 'Promotions'),
       ),
       GoRoute(
         path: '/admin/inventory-mgmt',
@@ -439,3 +439,41 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// Placeholder for features whose backend isn't built yet — avoids showing
+/// UI that pretends to work (loyalty points, ratings, promotions) but has
+/// no persistence behind it.
+class _ComingSoonScreen extends StatelessWidget {
+  final String title;
+  const _ComingSoonScreen({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.construction_rounded, size: 64, color: Color(0xFFFBBF24)),
+              const SizedBox(height: 16),
+              Text(
+                '$title is coming soon',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'We\'re still working on this feature. Check back later.',
+                style: TextStyle(color: Color(0xFF6B7280)),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
