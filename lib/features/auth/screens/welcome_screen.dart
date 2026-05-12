@@ -1,11 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:gap/gap.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
-import 'package:clean_ride/core/theme/app_spacing.dart';
-import 'package:clean_ride/core/widgets/app_button.dart';
 
 class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
@@ -15,37 +15,61 @@ class WelcomeScreen extends ConsumerStatefulWidget {
 }
 
 class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
-  final PageController _pageController = PageController();
+  final _pageController = PageController();
+  int _current = 0;
+  Timer? _timer;
 
-  static const List<_OnboardingPage> _pages = [
-    _OnboardingPage(
-      icon: Icons.local_car_wash,
+  static const _pages = [
+    _PageData(
+      icon: Icons.local_car_wash_rounded,
       title: 'Premium Car Wash',
       subtitle:
-          'Professional car wash service delivered to your doorstep',
-      color: AppColors.primary,
-      imageUrl: 'https://images.unsplash.com/photo-1607860108855-64acf2078ed9?w=600&fit=crop',
+          'Professional washing delivered right to your doorstep — whenever you need it.',
     ),
-    _OnboardingPage(
-      icon: Icons.schedule,
+    _PageData(
+      icon: Icons.calendar_month_rounded,
       title: 'Book in Seconds',
       subtitle:
-          'Schedule a wash in just a few taps. Choose your time and service',
-      color: AppColors.primary,
-      imageUrl: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?w=600&fit=crop',
+          'Pick your service, set the time and location. Done in just a few taps.',
     ),
-    _OnboardingPage(
-      icon: Icons.star,
-      title: 'Top-Rated Washers',
+    _PageData(
+      icon: Icons.verified_rounded,
+      title: 'Trusted Washers',
       subtitle:
-          'Our verified professionals deliver exceptional results every time',
-      color: AppColors.primary,
-      imageUrl: 'https://images.unsplash.com/photo-1601362840469-51e4d8d58785?w=600&fit=crop',
+          'Every washer is background-checked and trained to deliver flawless results.',
     ),
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted) return;
+      final next = (_current + 1) % _pages.length;
+      _pageController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  void _onPageChanged(int index) {
+    setState(() => _current = index);
+  }
+
+  void _onUserSwipe() {
+    _startTimer();
+  }
+
+  @override
   void dispose() {
+    _timer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -53,87 +77,131 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
-      body: SafeArea(
-        child: Padding(
-          padding: AppSpacing.screenPadding,
-          child: Column(
-            children: [
-              // Skip button
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => context.go('/login'),
-                  child: Text(
-                    'Skip',
-                    style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Page view
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  itemCount: _pages.length,
-                  onPageChanged: (_) {},
-                  itemBuilder: (context, index) {
-                    final page = _pages[index];
-                    return _OnboardingPageView(page: page);
-                  },
-                ),
-              ),
-
-              // Page indicator dots
-              SmoothPageIndicator(
-                controller: _pageController,
-                count: _pages.length,
-                effect: ExpandingDotsEffect(
-                  activeDotColor: AppColors.primary,
-                  dotColor: AppColors.divider,
-                  dotHeight: 8,
-                  dotWidth: 8,
-                  expansionFactor: 3,
-                  spacing: AppSpacing.sm,
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.xxl),
-
-              // Get Started button
-              AppButton(
-                label: 'Get Started',
-                onPressed: () => context.go('/login'),
-              ),
-
-              const SizedBox(height: AppSpacing.lg),
-
-              // Already have an account
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.primary, AppColors.primaryDark],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: Column(
                 children: [
-                  Text(
-                    'Already have an account? ',
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => context.go('/login'),
-                    child: Text(
-                      'Sign In',
-                      style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.primary,
+                  // Skip
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 20, top: 8),
+                      child: TextButton(
+                        onPressed: () => context.go('/login'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white.withValues(alpha: 0.7),
+                        ),
+                        child: const Text('Skip'),
                       ),
                     ),
                   ),
+
+                  // Pages
+                  Expanded(
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: (n) {
+                        if (n is UserScrollNotification) _onUserSwipe();
+                        return false;
+                      },
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: _pages.length,
+                        onPageChanged: _onPageChanged,
+                        itemBuilder: (context, i) =>
+                            _PageView(data: _pages[i]),
+                      ),
+                    ),
+                  ),
+
+                  // Dots
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(_pages.length, (i) {
+                      final active = i == _current;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: active ? 24 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: active
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      );
+                    }),
+                  ),
+
+                  const Gap(36),
+
+                  // Get Started
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 28),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: () => context.go('/login'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: AppColors.primary,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          'Get Started',
+                          style: AppTypography.labelLarge.copyWith(
+                            color: AppColors.primary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const Gap(18),
+
+                  // Sign in link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Already have an account? ',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: Colors.white.withValues(alpha: 0.7),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => context.go('/login'),
+                        child: Text(
+                          'Sign In',
+                          style: AppTypography.labelLarge.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const Gap(32),
                 ],
               ),
-
-              const SizedBox(height: AppSpacing.lg),
-            ],
+            ),
           ),
         ),
       ),
@@ -141,84 +209,74 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Data class for onboarding pages
-// ---------------------------------------------------------------------------
-
-class _OnboardingPage {
+class _PageData {
   final IconData icon;
   final String title;
   final String subtitle;
-  final Color color;
-  final String? imageUrl;
 
-  const _OnboardingPage({
+  const _PageData({
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.color,
-    this.imageUrl,
   });
 }
 
-// ---------------------------------------------------------------------------
-// Single onboarding page widget
-// ---------------------------------------------------------------------------
-
-class _OnboardingPageView extends StatelessWidget {
-  final _OnboardingPage page;
-
-  const _OnboardingPageView({required this.page});
+class _PageView extends StatelessWidget {
+  final _PageData data;
+  const _PageView({required this.data});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(horizontal: 36),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Image or icon circle
-          if (page.imageUrl != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.network(
-                page.imageUrl!,
-                width: 240,
-                height: 180,
-                fit: BoxFit.cover,
-              ),
-            )
-          else
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: page.color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                page.icon,
-                size: 56,
-                color: page.color,
+          // Icon illustration
+          Container(
+            width: 160,
+            height: 160,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Container(
+                width: 110,
+                height: 110,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  data.icon,
+                  size: 56,
+                  color: Colors.white,
+                ),
               ),
             ),
+          ),
 
-          const SizedBox(height: AppSpacing.xxxl),
+          const Gap(48),
 
-          // Title
           Text(
-            page.title,
-            style: AppTypography.headlineLarge,
+            data.title,
+            style: AppTypography.headlineLarge.copyWith(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+              height: 1.15,
+            ),
             textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: AppSpacing.md),
+          const Gap(16),
 
-          // Subtitle
           Text(
-            page.subtitle,
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
+            data.subtitle,
+            style: AppTypography.bodyLarge.copyWith(
+              color: Colors.white.withValues(alpha: 0.75),
+              height: 1.6,
             ),
             textAlign: TextAlign.center,
           ),
