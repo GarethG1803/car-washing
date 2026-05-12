@@ -7,6 +7,7 @@ import 'package:clean_ride/features/admin/dashboard/widgets/revenue_chart.dart';
 import 'package:clean_ride/features/admin/dashboard/widgets/bookings_chart.dart';
 import 'package:clean_ride/features/admin/dashboard/widgets/recent_activity_list.dart';
 import 'package:clean_ride/core/widgets/app_section_header.dart';
+import 'package:clean_ride/core/widgets/notification_bell.dart';
 import 'package:gap/gap.dart';
 
 class AdminDashboardScreen extends StatelessWidget {
@@ -29,7 +30,10 @@ class AdminDashboardScreen extends StatelessWidget {
                 Text('CleanRide', style: AppTypography.headlineMedium.copyWith(color: AppColors.primary)),
               ],
             ),
-            actions: const [Gap(8)],
+            actions: const [
+              NotificationBell(customerRouteBase: '/admin/bookings'),
+              Gap(8),
+            ],
           ),
           SliverToBoxAdapter(
             child: Padding(

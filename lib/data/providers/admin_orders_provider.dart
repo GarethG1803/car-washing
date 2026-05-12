@@ -3,28 +3,60 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:clean_ride/core/network/api_client.dart';
 import 'package:clean_ride/data/models/booking.dart';
 
-final adminOrdersProvider = FutureProvider<List<Booking>>((ref) async {
+/// Admin: full orders list. Polls every 25s so new customer bookings appear
+/// in the assignment queue without manual refresh.
+final adminOrdersProvider = StreamProvider<List<Booking>>((ref) async* {
   ref.watch(tokenProvider);
   final dio = ref.read(apiClientProvider);
-  final response = await dio.get('/orders');
-  if (response.data['success'] == true) {
-    final data = response.data['data'] as List;
-    return data
-        .map((json) => Booking.fromApiJson(json as Map<String, dynamic>))
-        .toList();
+  var disposed = false;
+  ref.onDispose(() => disposed = true);
+
+  Future<List<Booking>> fetch() async {
+    if (ref.read(tokenProvider) == null) return const [];
+    try {
+      final response = await dio.get('/orders');
+      if (response.data['success'] == true) {
+        return (response.data['data'] as List)
+            .map((j) => Booking.fromApiJson(j as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (_) {}
+    return const [];
   }
-  return [];
+
+  yield await fetch();
+  while (!disposed) {
+    await Future<void>.delayed(const Duration(seconds: 25));
+    if (disposed) break;
+    yield await fetch();
+  }
 });
 
+/// Admin: single order detail. Polls every 20s.
 final adminOrderDetailProvider =
-    FutureProvider.family<Map<String, dynamic>?, String>((ref, id) async {
+    StreamProvider.family<Map<String, dynamic>?, String>((ref, id) async* {
   ref.watch(tokenProvider);
   final dio = ref.read(apiClientProvider);
-  final response = await dio.get('/orders/$id');
-  if (response.data['success'] == true) {
-    return response.data['data'] as Map<String, dynamic>;
+  var disposed = false;
+  ref.onDispose(() => disposed = true);
+
+  Future<Map<String, dynamic>?> fetch() async {
+    if (ref.read(tokenProvider) == null) return null;
+    try {
+      final response = await dio.get('/orders/$id');
+      if (response.data['success'] == true) {
+        return response.data['data'] as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return null;
   }
-  return null;
+
+  yield await fetch();
+  while (!disposed) {
+    await Future<void>.delayed(const Duration(seconds: 20));
+    if (disposed) break;
+    yield await fetch();
+  }
 });
 
 /// Extract the friendly `message` field from a Dio error response body when

@@ -6,6 +6,7 @@ import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
 import 'package:clean_ride/core/widgets/app_section_header.dart';
+import 'package:clean_ride/core/widgets/notification_bell.dart';
 import 'package:clean_ride/data/models/booking.dart';
 import 'package:clean_ride/data/providers/washer_jobs_provider.dart';
 import 'package:clean_ride/features/auth/providers/auth_provider.dart';
@@ -30,6 +31,7 @@ class WasherDashboardScreen extends ConsumerWidget {
             surfaceTintColor: Colors.transparent,
             title: Text('Dashboard', style: AppTypography.titleLarge),
             actions: [
+              const NotificationBell(washerRouteBase: '/washer/jobs'),
               IconButton(
                 icon: const Icon(Icons.inventory_2_outlined),
                 color: AppColors.textPrimary,

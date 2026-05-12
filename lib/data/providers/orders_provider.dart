@@ -12,30 +12,62 @@ String _friendlyError(Object e, String fallback) {
   return fallback;
 }
 
-/// Customer: re-runs when token changes (login/logout).
-final customerOrdersProvider = FutureProvider<List<Booking>>((ref) async {
+/// Customer: list of my orders. Auto-refreshes every 25s while the provider
+/// has listeners, so customers see washer status changes without manually
+/// pulling to refresh.
+final customerOrdersProvider =
+    StreamProvider<List<Booking>>((ref) async* {
   ref.watch(tokenProvider);
   final dio = ref.read(apiClientProvider);
-  final response = await dio.get('/orders/my');
-  if (response.data['success'] == true) {
-    final data = response.data['data'] as List;
-    return data
-        .map((json) => Booking.fromApiJson(json as Map<String, dynamic>))
-        .toList();
+  var disposed = false;
+  ref.onDispose(() => disposed = true);
+
+  Future<List<Booking>> fetch() async {
+    if (ref.read(tokenProvider) == null) return const [];
+    try {
+      final response = await dio.get('/orders/my');
+      if (response.data['success'] == true) {
+        return (response.data['data'] as List)
+            .map((j) => Booking.fromApiJson(j as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (_) {}
+    return const [];
   }
-  return [];
+
+  yield await fetch();
+  while (!disposed) {
+    await Future<void>.delayed(const Duration(seconds: 25));
+    if (disposed) break;
+    yield await fetch();
+  }
 });
 
-/// Customer: fetch a single order with status history.
+/// Customer: single-order detail with history. Polls every 20s.
 final orderDetailProvider =
-    FutureProvider.family<Map<String, dynamic>?, String>((ref, id) async {
+    StreamProvider.family<Map<String, dynamic>?, String>((ref, id) async* {
   ref.watch(tokenProvider);
   final dio = ref.read(apiClientProvider);
-  final response = await dio.get('/orders/my/$id');
-  if (response.data['success'] == true) {
-    return response.data['data'] as Map<String, dynamic>;
+  var disposed = false;
+  ref.onDispose(() => disposed = true);
+
+  Future<Map<String, dynamic>?> fetch() async {
+    if (ref.read(tokenProvider) == null) return null;
+    try {
+      final response = await dio.get('/orders/my/$id');
+      if (response.data['success'] == true) {
+        return response.data['data'] as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return null;
   }
-  return null;
+
+  yield await fetch();
+  while (!disposed) {
+    await Future<void>.delayed(const Duration(seconds: 20));
+    if (disposed) break;
+    yield await fetch();
+  }
 });
 
 /// Customer self-cancel — returns null on success or error message string.

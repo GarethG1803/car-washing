@@ -12,17 +12,33 @@ String _friendly(Object e) {
   return e.toString();
 }
 
-final washerJobsProvider = FutureProvider<List<Booking>>((ref) async {
+/// Washer: assigned jobs. Polls every 25s so new admin assignments and
+/// status changes appear without manual refresh.
+final washerJobsProvider = StreamProvider<List<Booking>>((ref) async* {
   ref.watch(tokenProvider);
   final dio = ref.read(apiClientProvider);
-  final response = await dio.get('/orders/assigned');
-  if (response.data['success'] == true) {
-    final data = response.data['data'] as List;
-    return data
-        .map((json) => Booking.fromApiJson(json as Map<String, dynamic>))
-        .toList();
+  var disposed = false;
+  ref.onDispose(() => disposed = true);
+
+  Future<List<Booking>> fetch() async {
+    if (ref.read(tokenProvider) == null) return const [];
+    try {
+      final response = await dio.get('/orders/assigned');
+      if (response.data['success'] == true) {
+        return (response.data['data'] as List)
+            .map((j) => Booking.fromApiJson(j as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (_) {}
+    return const [];
   }
-  return [];
+
+  yield await fetch();
+  while (!disposed) {
+    await Future<void>.delayed(const Duration(seconds: 25));
+    if (disposed) break;
+    yield await fetch();
+  }
 });
 
 class WasherJobActions {

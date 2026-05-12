@@ -6,7 +6,7 @@ import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
 import 'package:clean_ride/core/widgets/app_section_header.dart';
-import 'package:clean_ride/core/widgets/app_badge.dart';
+import 'package:clean_ride/core/widgets/notification_bell.dart';
 import 'package:clean_ride/core/widgets/app_status_indicator.dart';
 import 'package:clean_ride/data/models/booking.dart';
 import 'package:clean_ride/data/providers/services_provider.dart';
@@ -41,16 +41,9 @@ class CustomerHomeScreen extends ConsumerWidget {
                     style: AppTypography.headlineMedium.copyWith(color: AppColors.primary)),
               ],
             ),
-            actions: [
-              AppBadge(
-                count: 0,
-                child: IconButton(
-                  icon: const Icon(Icons.notifications_outlined),
-                  color: AppColors.textPrimary,
-                  onPressed: () => context.push('/customer/notifications'),
-                ),
-              ),
-              const Gap(8),
+            actions: const [
+              NotificationBell(customerRouteBase: '/customer/bookings'),
+              Gap(8),
             ],
           ),
           SliverToBoxAdapter(
