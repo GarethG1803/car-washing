@@ -30,6 +30,8 @@ dependencies:
   gap: ^3.0.0
   heroicons: ^0.11.0
   dio: ^5.9.2
+  http: ^1.6.0
+  http_parser: ^4.0.0
   image_picker: ^1.1.2
   shared_preferences: ^2.3.0   # or latest
 
