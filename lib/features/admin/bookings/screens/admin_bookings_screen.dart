@@ -60,6 +60,7 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
     if (_search.isEmpty) return true;
     final q = _search.toLowerCase();
     return b.id.toLowerCase().contains(q) ||
+        (b.customerName?.toLowerCase().contains(q) ?? false) ||
         b.vehicleId.toLowerCase().contains(q) ||
         b.address.toLowerCase().contains(q);
   }
@@ -90,7 +91,7 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
               TextField(
                 onChanged: (v) => setState(() => _search = v),
                 decoration: InputDecoration(
-                  hintText: 'Search by order ID, plate, address...',
+                  hintText: 'Search by order ID, customer, plate, address...',
                   hintStyle: AppTypography.bodyMedium
                       .copyWith(color: AppColors.textSecondary),
                   prefixIcon:
@@ -197,6 +198,21 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
                                   status: _appStatus(booking.status)),
                             ]),
                             const Gap(8),
+                            Row(children: [
+                              const Icon(Icons.person_outline,
+                                  size: 16, color: AppColors.textSecondary),
+                              const Gap(4),
+                              Expanded(
+                                child: Text(
+                                  booking.customerName ?? 'Unknown customer',
+                                  style: AppTypography.bodyMedium.copyWith(
+                                      color: AppColors.textSecondary),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ]),
+                            const Gap(4),
                             Row(children: [
                               const Icon(Icons.directions_car_outlined,
                                   size: 16, color: AppColors.textSecondary),

@@ -189,10 +189,14 @@ class _JobDetailViewState extends ConsumerState<_JobDetailView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _card('Vehicle', [
+                    _row(Icons.person_outline, 'Customer',
+                        job.customerName ?? 'Unknown customer'),
+                    const Gap(AppSpacing.md),
                     _row(Icons.directions_car_outlined, 'Plate',
                         job.vehicleId.toUpperCase()),
                     const Gap(AppSpacing.md),
-                    _row(Icons.badge_outlined, 'Service ID', job.servicePackageId),
+                    _row(Icons.local_car_wash_outlined, 'Service',
+                        job.serviceName ?? job.servicePackageId),
                   ]),
                   const Gap(AppSpacing.lg),
                   _card('Schedule', [

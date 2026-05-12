@@ -13,6 +13,7 @@ enum BookingStatus {
 class Booking {
   final String id;
   final String customerId;
+  final String? customerName;
   final String? washerId;
   final String vehicleId;
   final String servicePackageId;
@@ -33,6 +34,7 @@ class Booking {
   const Booking({
     required this.id,
     required this.customerId,
+    this.customerName,
     this.washerId,
     required this.vehicleId,
     required this.servicePackageId,
@@ -54,6 +56,7 @@ class Booking {
   Booking copyWith({
     String? id,
     String? customerId,
+    String? customerName,
     String? washerId,
     String? vehicleId,
     String? servicePackageId,
@@ -74,6 +77,7 @@ class Booking {
     return Booking(
       id: id ?? this.id,
       customerId: customerId ?? this.customerId,
+      customerName: customerName ?? this.customerName,
       washerId: washerId ?? this.washerId,
       vehicleId: vehicleId ?? this.vehicleId,
       servicePackageId: servicePackageId ?? this.servicePackageId,
@@ -100,6 +104,7 @@ class Booking {
           runtimeType == other.runtimeType &&
           id == other.id &&
           customerId == other.customerId &&
+          customerName == other.customerName &&
           washerId == other.washerId &&
           vehicleId == other.vehicleId &&
           servicePackageId == other.servicePackageId &&
@@ -121,6 +126,7 @@ class Booking {
   int get hashCode => Object.hashAll([
         id,
         customerId,
+        customerName,
         washerId,
         vehicleId,
         servicePackageId,
@@ -141,7 +147,7 @@ class Booking {
 
   @override
   String toString() =>
-      'Booking(id: $id, customerId: $customerId, washerId: $washerId, '
+      'Booking(id: $id, customerId: $customerId, customerName: $customerName, washerId: $washerId, '
       'vehicleId: $vehicleId, servicePackageId: $servicePackageId, '
       'addonIds: $addonIds, status: $status, scheduledDate: $scheduledDate, '
       'timeSlot: $timeSlot, address: $address, latitude: $latitude, '
@@ -152,6 +158,13 @@ class Booking {
       id.length >= 8 ? id.substring(0, 8).toUpperCase() : id.toUpperCase();
 
   factory Booking.fromApiJson(Map<String, dynamic> json) {
+    final customer = json['customer'];
+    final customerJson =
+        customer is Map<String, dynamic> ? customer : <String, dynamic>{};
+    final washer = json['washer'] ?? json['assigned_employee'];
+    final washerJson =
+        washer is Map<String, dynamic> ? washer : <String, dynamic>{};
+
     BookingStatus status;
     switch (json['status']?.toString()) {
       case 'confirmed':
@@ -172,8 +185,13 @@ class Booking {
         : DateTime.now();
     return Booking(
       id: json['id']?.toString() ?? '',
-      customerId: json['customer_id']?.toString() ?? '',
-      washerId: json['assigned_employee_id']?.toString(),
+      customerId:
+          json['customer_id']?.toString() ?? customerJson['id']?.toString() ?? '',
+      customerName: json['customer_name']?.toString() ??
+          json['customerName']?.toString() ??
+          customerJson['name']?.toString(),
+      washerId: json['assigned_employee_id']?.toString() ??
+          washerJson['id']?.toString(),
       vehicleId: json['vehicle_plate']?.toString() ?? '',
       servicePackageId: json['service_id']?.toString() ?? '',
       addonIds: const [],

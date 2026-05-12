@@ -225,6 +225,20 @@ class _JobList extends StatelessWidget {
                 ),
                 const Gap(AppSpacing.md),
                 Row(children: [
+                  const Icon(Icons.person_outline,
+                      size: 16, color: AppColors.textSecondary),
+                  const Gap(6),
+                  Expanded(
+                    child: Text(
+                      job.customerName ?? 'Unknown customer',
+                      style: AppTypography.bodyMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ]),
+                const Gap(AppSpacing.xs),
+                Row(children: [
                   const Icon(Icons.directions_car_outlined,
                       size: 16, color: AppColors.textSecondary),
                   const Gap(6),

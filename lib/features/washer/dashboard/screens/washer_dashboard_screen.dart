@@ -300,8 +300,10 @@ class _TodayJobCard extends StatelessWidget {
             ),
             const Gap(AppSpacing.md),
             Text(
-              '#${job.shortId}',
+              job.customerName ?? '#${job.shortId}',
               style: AppTypography.titleMedium,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const Gap(4),
             Text(

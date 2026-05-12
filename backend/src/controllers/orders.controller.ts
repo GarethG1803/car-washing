@@ -88,18 +88,32 @@ export const getMyOrderDetails = (req: AuthRequest, res: Response): any => {
 export const getAllOrdersAdmin = (req: AuthRequest, res: Response): any => {
     try {
         const { status, date } = req.query;
-        let query = `SELECT * FROM orders WHERE 1=1`;
+        let query = `
+            SELECT
+                orders.*,
+                customers.name AS customer_name,
+                customers.phone AS customer_phone,
+                washers.name AS washer_name,
+                washers.phone AS washer_phone,
+                services.name AS service_name,
+                services.price AS total_amount
+            FROM orders
+            LEFT JOIN users customers ON customers.id = orders.customer_id
+            LEFT JOIN users washers ON washers.id = orders.assigned_employee_id
+            LEFT JOIN services ON services.id = orders.service_id
+            WHERE 1=1
+        `;
         const params: any[] = [];
 
         if (status) {
-            query += ` AND status = ?`;
+            query += ` AND orders.status = ?`;
             params.push(status);
         }
         if (date) {
-            query += ` AND date(scheduled_at) = date(?)`;
+            query += ` AND date(orders.scheduled_at) = date(?)`;
             params.push(date);
         }
-        query += ` ORDER BY created_at DESC`;
+        query += ` ORDER BY orders.created_at DESC`;
 
         const orders = db.prepare(query).all(...params);
         res.status(200).json({ success: true, message: 'Orders retrieved successfully', data: orders });
@@ -111,7 +125,21 @@ export const getAllOrdersAdmin = (req: AuthRequest, res: Response): any => {
 export const getOrderDetailsAdmin = (req: AuthRequest, res: Response): any => {
     try {
         const { id } = req.params;
-        const order = db.prepare(`SELECT * FROM orders WHERE id = ?`).get(id);
+        const order = db.prepare(`
+            SELECT
+                orders.*,
+                customers.name AS customer_name,
+                customers.phone AS customer_phone,
+                washers.name AS washer_name,
+                washers.phone AS washer_phone,
+                services.name AS service_name,
+                services.price AS total_amount
+            FROM orders
+            LEFT JOIN users customers ON customers.id = orders.customer_id
+            LEFT JOIN users washers ON washers.id = orders.assigned_employee_id
+            LEFT JOIN services ON services.id = orders.service_id
+            WHERE orders.id = ?
+        `).get(id);
 
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found', data: null });
