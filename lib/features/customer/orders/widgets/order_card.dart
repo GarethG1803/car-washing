@@ -64,7 +64,7 @@ class OrderCard extends StatelessWidget {
                       Text(booking.serviceName ?? 'Car Wash', style: AppTypography.titleMedium),
                       const Gap(2),
                       Text(
-                        'Booking #${booking.id}',
+                        '#${booking.shortId}',
                         style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
                       ),
                     ],

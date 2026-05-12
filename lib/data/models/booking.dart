@@ -148,6 +148,9 @@ class Booking {
       'longitude: $longitude, totalAmount: $totalAmount, tip: $tip, '
       'notes: $notes, createdAt: $createdAt, completedAt: $completedAt)';
 
+  String get shortId =>
+      id.length >= 8 ? id.substring(0, 8).toUpperCase() : id.toUpperCase();
+
   factory Booking.fromApiJson(Map<String, dynamic> json) {
     BookingStatus status;
     switch (json['status']?.toString()) {

@@ -300,7 +300,7 @@ class _TodayJobCard extends StatelessWidget {
             ),
             const Gap(AppSpacing.md),
             Text(
-              'Order #${job.id.length > 8 ? job.id.substring(0, 8) : job.id}',
+              '#${job.shortId}',
               style: AppTypography.titleMedium,
             ),
             const Gap(4),

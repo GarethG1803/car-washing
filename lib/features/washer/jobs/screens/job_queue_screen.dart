@@ -215,7 +215,7 @@ class _JobList extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      'Order #${job.id.length > 8 ? job.id.substring(0, 8).toUpperCase() : job.id.toUpperCase()}',
+                      '#${job.shortId}',
                       style: AppTypography.labelSmall
                           .copyWith(color: AppColors.textSecondary),
                     ),

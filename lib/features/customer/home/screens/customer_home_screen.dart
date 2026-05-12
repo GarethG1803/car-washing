@@ -221,7 +221,7 @@ class _BookingCard extends StatelessWidget {
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(
-            'Order #${booking.id.length > 8 ? booking.id.substring(0, 8) : booking.id}',
+            '#${booking.shortId}',
             style: AppTypography.titleMedium,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
