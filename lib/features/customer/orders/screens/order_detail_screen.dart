@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:clean_ride/core/utils/web_navigator.dart';
 import 'package:clean_ride/core/theme/app_colors.dart';
 import 'package:clean_ride/core/theme/app_typography.dart';
 import 'package:clean_ride/core/theme/app_spacing.dart';
@@ -72,19 +74,20 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     if (url == null) return;
 
     try {
-      final uri = Uri.parse(url);
-      // On web: webOnlyWindowName '_self' navigates the CURRENT tab, bypassing
-      //   popup blockers entirely. Session is restored on return via main().
-      // On mobile: LaunchMode.externalApplication opens system browser.
+      if (kIsWeb) {
+        // Bypass url_launcher on web entirely — direct browser navigation
+        // so MissingPluginException is impossible and no popup is opened.
+        navigateCurrentTab(url);
+        return;
+      }
+      // Mobile: open in system browser
       final ok = await launchUrl(
-        uri,
+        Uri.parse(url),
         mode: LaunchMode.externalApplication,
-        webOnlyWindowName: '_self',
       );
       if (!ok && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text(
-              'Browser blocked the payment window. Copy the link instead.'),
+          content: const Text('Could not open payment page.'),
           backgroundColor: AppColors.error,
           action: SnackBarAction(
             label: 'Copy link',
