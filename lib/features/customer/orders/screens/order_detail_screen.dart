@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,13 +22,30 @@ class OrderDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
-  // Cached invoice URL — loaded eagerly when order is done+unpaid so the
-  // button tap has NO async gap (prevents browser popup blocker on web).
   String? _invoiceUrl;
   bool _preparingInvoice = false;
+  Timer? _pollTimer;
+  bool _everPolled = false;
 
-  /// Pre-fetches or creates the Xendit invoice in the background.
-  /// Must be called as a fire-and-forget from the build phase.
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  void _ensurePolling(bool shouldPoll) {
+    if (shouldPoll && _pollTimer == null) {
+      _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+        if (!mounted) return;
+        _everPolled = true;
+        ref.invalidate(orderDetailProvider(widget.bookingId));
+      });
+    } else if (!shouldPoll && _pollTimer != null) {
+      _pollTimer?.cancel();
+      _pollTimer = null;
+    }
+  }
+
   Future<void> _prepareInvoice(String? existingUrl) async {
     if (_preparingInvoice || _invoiceUrl != null) return;
 
@@ -42,28 +61,23 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
           .createInvoice(widget.bookingId);
       if (mounted) setState(() => _invoiceUrl = url);
     } catch (_) {
-      // Ignore — user can still tap Pay and we'll retry
     } finally {
       if (mounted) setState(() => _preparingInvoice = false);
     }
   }
 
-  /// Launches payment. Always called directly from a button tap so
-  /// there is zero async gap — popup blockers never fire.
   void _launchPayment() {
     final url = _invoiceUrl;
     if (url == null) return;
-
-    final uri = Uri.parse(url);
-    // platformDefault: navigates the current tab on web (no popup to block),
-    // opens in-app browser on mobile.
-    launchUrl(uri, mode: LaunchMode.platformDefault).catchError((_) {
+    launchUrl(Uri.parse(url), mode: LaunchMode.platformDefault)
+        .catchError((_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Could not open payment page. Try again.'),
           backgroundColor: AppColors.error,
         ));
       }
+      return false;
     });
   }
 
@@ -103,7 +117,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             Text('Could not load order', style: AppTypography.titleMedium),
             const Gap(16),
             TextButton(
-              onPressed: () => ref.invalidate(orderDetailProvider(widget.bookingId)),
+              onPressed: () =>
+                  ref.invalidate(orderDetailProvider(widget.bookingId)),
               child: const Text('Retry'),
             ),
           ]),
@@ -130,21 +145,33 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
               ? DateTime.parse(order['scheduled_at'].toString())
               : null;
           final appStatus = _mapStatus(status);
-          final amount =
-              ((order['total_amount'] as num?) ?? 0).toInt();
+          final amount = ((order['total_amount'] as num?) ?? 0).toInt();
 
-          // Payment state from order row
           final paymentStatus = order['payment_status']?.toString();
           final dbInvoiceUrl = order['xendit_invoice_url']?.toString();
+          final isPaid = paymentStatus == 'paid';
 
-          // Eagerly prepare invoice when order is done and not yet paid.
-          // We use addPostFrameCallback to avoid calling setState during build.
-          if (isDone &&
-              paymentStatus != 'paid' &&
-              _invoiceUrl == null &&
-              !_preparingInvoice) {
-            WidgetsBinding.instance.addPostFrameCallback(
-                (_) => _prepareInvoice(dbInvoiceUrl));
+          // Washer info from JOIN
+          final washerName = order['washer_name']?.toString();
+          final washerPhone = order['washer_phone']?.toString();
+          final washerAvatar = order['washer_avatar']?.toString();
+
+          // Eagerly prepare invoice for unpaid completed orders
+          if (isDone && !isPaid && _invoiceUrl == null && !_preparingInvoice) {
+            WidgetsBinding.instance
+                .addPostFrameCallback((_) => _prepareInvoice(dbInvoiceUrl));
+          }
+
+          // Poll for payment status while waiting on user to finish payment
+          WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _ensurePolling(isDone && !isPaid));
+
+          // Stop polling and show a brief success message once paid
+          if (isPaid && _everPolled) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _pollTimer?.cancel();
+              _pollTimer = null;
+            });
           }
 
           return SingleChildScrollView(
@@ -183,24 +210,14 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                   ]),
                   const Gap(16),
 
-                  // Washer
-                  if (order['assigned_employee_id'] != null) ...[
-                    _card([
-                      Text('Assigned Washer',
-                          style: AppTypography.titleMedium),
-                      const Gap(8),
-                      Row(children: [
-                        const CircleAvatar(
-                          radius: 20,
-                          backgroundColor: AppColors.primaryLight,
-                          child:
-                              Icon(Icons.person, color: AppColors.primary),
-                        ),
-                        const Gap(12),
-                        Text('Washer assigned',
-                            style: AppTypography.bodyMedium),
-                      ]),
-                    ]),
+                  // Washer info — Gojek-style
+                  if (washerName != null) ...[
+                    _WasherCard(
+                      name: washerName,
+                      phone: washerPhone,
+                      avatar: washerAvatar,
+                      status: status,
+                    ),
                     const Gap(16),
                   ],
 
@@ -276,13 +293,12 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () => context.push(
-                            '/customer/tracking/${widget.bookingId}'),
+                        onPressed: () => context
+                            .push('/customer/tracking/${widget.bookingId}'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           side: const BorderSide(color: AppColors.primary),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(
                                   AppSpacing.radiusMd)),
@@ -341,6 +357,135 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
 }
 
 // ─────────────────────────────────────────────
+// Washer card — Gojek-style
+// ─────────────────────────────────────────────
+
+class _WasherCard extends StatelessWidget {
+  final String name;
+  final String? phone;
+  final String? avatar;
+  final String status;
+
+  const _WasherCard({
+    required this.name,
+    required this.phone,
+    required this.avatar,
+    required this.status,
+  });
+
+  String _statusLabel() {
+    switch (status) {
+      case 'confirmed':
+        return 'Your washer is preparing';
+      case 'on_the_way':
+        return 'On the way to you';
+      case 'in_progress':
+        return 'Washing your car now';
+      case 'done':
+        return 'Wash completed';
+      default:
+        return 'Assigned washer';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        boxShadow: const [
+          BoxShadow(
+              color: Color(0x0A000000),
+              blurRadius: 10,
+              offset: Offset(0, 2))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(_statusLabel(),
+              style: AppTypography.labelSmall
+                  .copyWith(color: AppColors.textSecondary)),
+          const Gap(12),
+          Row(
+            children: [
+              // Avatar
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.primary, width: 2),
+                ),
+                padding: const EdgeInsets.all(2),
+                child: CircleAvatar(
+                  radius: 26,
+                  backgroundColor: AppColors.primaryLight,
+                  backgroundImage:
+                      (avatar != null && avatar!.isNotEmpty)
+                          ? NetworkImage(avatar!)
+                          : null,
+                  child: (avatar == null || avatar!.isEmpty)
+                      ? Text(
+                          name.isNotEmpty ? name[0].toUpperCase() : '?',
+                          style: AppTypography.titleMedium
+                              .copyWith(color: AppColors.primary),
+                        )
+                      : null,
+                ),
+              ),
+              const Gap(14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name,
+                        style: AppTypography.titleMedium
+                            .copyWith(fontWeight: FontWeight.w700)),
+                    const Gap(2),
+                    Row(children: [
+                      const Icon(Icons.local_car_wash_rounded,
+                          size: 13, color: AppColors.textSecondary),
+                      const Gap(4),
+                      Text('CleanRide Washer',
+                          style: AppTypography.labelSmall.copyWith(
+                              color: AppColors.textSecondary)),
+                      const Gap(8),
+                      const Icon(Icons.star_rounded,
+                          size: 14, color: Color(0xFFFBBF24)),
+                      const Gap(2),
+                      Text('4.9',
+                          style: AppTypography.labelSmall.copyWith(
+                              fontWeight: FontWeight.w600)),
+                    ]),
+                  ],
+                ),
+              ),
+              if (phone != null && phone!.isNotEmpty)
+                IconButton(
+                  onPressed: () =>
+                      launchUrl(Uri.parse('tel:$phone')),
+                  icon: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppColors.success.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.phone_rounded,
+                        color: AppColors.success, size: 18),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
 // Payment card
 // ─────────────────────────────────────────────
 
@@ -388,7 +533,7 @@ class _PaymentCard extends StatelessWidget {
     } else if (isExpired) {
       buttonLabel = 'Retry Payment';
     } else {
-      buttonLabel = 'Pay Now  →  Rp ${NumberFormat('#,###').format(amount)}';
+      buttonLabel = 'Pay Now  •  Rp ${NumberFormat('#,###').format(amount)}';
     }
 
     return Container(
@@ -404,7 +549,6 @@ class _PaymentCard extends StatelessWidget {
         ],
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Header band
         Container(
           width: double.infinity,
           padding:
@@ -424,11 +568,9 @@ class _PaymentCard extends StatelessWidget {
                     color: headerColor, fontWeight: FontWeight.w700)),
           ]),
         ),
-
         Padding(
           padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Amount row
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text('Total',
                   style: AppTypography.bodyMedium
@@ -439,7 +581,6 @@ class _PaymentCard extends StatelessWidget {
                     .copyWith(fontWeight: FontWeight.w700),
               ),
             ]),
-
             if (isPaid) ...[
               const Gap(12),
               Row(children: [
@@ -451,7 +592,6 @@ class _PaymentCard extends StatelessWidget {
                         .copyWith(color: AppColors.success)),
               ]),
             ],
-
             if (!isPaid) ...[
               const Gap(6),
               Row(children: [
@@ -467,15 +607,12 @@ class _PaymentCard extends StatelessWidget {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  // Enabled only when invoice URL is ready — click is then
-                  // synchronous, so popup blockers cannot fire on web.
                   onPressed:
                       (invoiceReady && !preparingInvoice) ? onPay : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor:
-                        AppColors.divider,
+                    disabledBackgroundColor: AppColors.divider,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
@@ -498,9 +635,9 @@ class _PaymentCard extends StatelessWidget {
                           ],
                         )
                       : Text(buttonLabel,
-                          style: AppTypography.labelLarge
-                              .copyWith(color: Colors.white,
-                                  fontWeight: FontWeight.w600)),
+                          style: AppTypography.labelLarge.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600)),
                 ),
               ),
             ],

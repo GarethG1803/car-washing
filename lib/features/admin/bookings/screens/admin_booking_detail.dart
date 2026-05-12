@@ -234,18 +234,31 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
             itemBuilder: (_, index) {
               final emp = employees[index];
               final name = emp['name']?.toString() ?? 'Unknown';
-              final id = emp['id']?.toString() ?? '';
+              final phone = emp['phone']?.toString();
+              final avatar = emp['avatar_url']?.toString();
               return ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 leading: CircleAvatar(
                   backgroundColor: AppColors.primaryLight,
-                  child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : '?',
-                    style: const TextStyle(color: AppColors.primary),
-                  ),
+                  backgroundImage: (avatar != null && avatar.isNotEmpty)
+                      ? NetworkImage(avatar)
+                      : null,
+                  child: (avatar == null || avatar.isEmpty)
+                      ? Text(
+                          name.isNotEmpty ? name[0].toUpperCase() : '?',
+                          style:
+                              const TextStyle(color: AppColors.primary),
+                        )
+                      : null,
                 ),
-                title: Text(name),
-                subtitle: Text('ID: ${id.length > 8 ? id.substring(0, 8) : id}...',
-                    style: const TextStyle(fontSize: 11)),
+                title: Text(name,
+                    style:
+                        const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: phone != null && phone.isNotEmpty
+                    ? Text(phone,
+                        style: const TextStyle(fontSize: 12))
+                    : null,
                 onTap: () => ctx.pop(emp),
               );
             },
@@ -299,6 +312,9 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
     final address = order['location_address']?.toString() ?? '—';
     final notes = order['notes']?.toString();
     final assignedId = order['assigned_employee_id']?.toString();
+    final washerName = order['washer_name']?.toString();
+    final washerPhone = order['washer_phone']?.toString();
+    final washerAvatar = order['washer_avatar']?.toString();
     final shortId = order['id']?.toString() ?? widget.bookingId;
     final displayId =
         shortId.length > 8 ? shortId.substring(0, 8).toUpperCase() : shortId.toUpperCase();
@@ -342,16 +358,41 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
                   ),
               ],
             ),
-            const Gap(4),
+            const Gap(8),
             if (assignedId != null)
               Row(children: [
-                const CircleAvatar(
-                  radius: 18,
+                CircleAvatar(
+                  radius: 22,
                   backgroundColor: AppColors.primaryLight,
-                  child: Icon(Icons.person, color: AppColors.primary, size: 20),
+                  backgroundImage:
+                      (washerAvatar != null && washerAvatar.isNotEmpty)
+                          ? NetworkImage(washerAvatar)
+                          : null,
+                  child: (washerAvatar == null || washerAvatar.isEmpty)
+                      ? Text(
+                          (washerName ?? '?').isNotEmpty
+                              ? (washerName ?? '?')[0].toUpperCase()
+                              : '?',
+                          style: AppTypography.titleMedium
+                              .copyWith(color: AppColors.primary),
+                        )
+                      : null,
                 ),
-                const Gap(10),
-                Text(assignedId, style: AppTypography.bodyMedium),
+                const Gap(12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(washerName ?? 'Washer assigned',
+                          style: AppTypography.bodyLarge
+                              .copyWith(fontWeight: FontWeight.w600)),
+                      if (washerPhone != null && washerPhone.isNotEmpty)
+                        Text(washerPhone,
+                            style: AppTypography.labelSmall.copyWith(
+                                color: AppColors.textSecondary)),
+                    ],
+                  ),
+                ),
               ])
             else
               Text('Not assigned yet',

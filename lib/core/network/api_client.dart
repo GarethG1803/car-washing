@@ -8,6 +8,10 @@ class TokenNotifier extends StateNotifier<String?> {
     _load();
   }
 
+  /// Synchronous constructor for when the caller has already loaded the token
+  /// from storage (eg. in main() before runApp). Skips the async read.
+  TokenNotifier.withInitial(String? initial) : super(initial);
+
   Future<void> _load() async {
     final stored = await TokenStorage.read();
     state = stored;
