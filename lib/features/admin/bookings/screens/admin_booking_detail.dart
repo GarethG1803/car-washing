@@ -315,6 +315,8 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
     final washerName = order['washer_name']?.toString();
     final washerPhone = order['washer_phone']?.toString();
     final washerAvatar = order['washer_avatar']?.toString();
+    final customerName = order['customer_name']?.toString();
+    final customerPhone = order['customer_phone']?.toString();
     final shortId = order['id']?.toString() ?? widget.bookingId;
     final displayId =
         shortId.length > 8 ? shortId.substring(0, 8).toUpperCase() : shortId.toUpperCase();
@@ -344,6 +346,39 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
             const Gap(8),
             _labelValue('Plate', plate),
             _labelValue('Type', vehicleType),
+          ]),
+          const Gap(16),
+          _card([
+            Text('Customer', style: AppTypography.titleMedium),
+            const Gap(12),
+            Row(children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: AppColors.warning.withValues(alpha: 0.15),
+                child: Text(
+                  (customerName ?? '?').isNotEmpty
+                      ? (customerName ?? '?')[0].toUpperCase()
+                      : '?',
+                  style: AppTypography.titleMedium
+                      .copyWith(color: AppColors.warning),
+                ),
+              ),
+              const Gap(12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(customerName ?? 'Unknown customer',
+                        style: AppTypography.bodyLarge
+                            .copyWith(fontWeight: FontWeight.w600)),
+                    if (customerPhone != null && customerPhone.isNotEmpty)
+                      Text(customerPhone,
+                          style: AppTypography.labelSmall
+                              .copyWith(color: AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+            ]),
           ]),
           const Gap(16),
           _card([
