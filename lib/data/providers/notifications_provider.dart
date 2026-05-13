@@ -62,7 +62,7 @@ final notificationsProvider =
 
   yield await fetchOnce();
   while (!disposed) {
-    await Future<void>.delayed(const Duration(seconds: 30));
+    await Future<void>.delayed(const Duration(seconds: 15));
     if (disposed) break;
     yield await fetchOnce();
   }

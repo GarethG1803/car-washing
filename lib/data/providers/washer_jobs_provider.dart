@@ -12,9 +12,10 @@ String _friendly(Object e) {
   return e.toString();
 }
 
-/// Washer: assigned jobs. Polls every 25s so new admin assignments and
-/// status changes appear without manual refresh.
-final washerJobsProvider = StreamProvider<List<Booking>>((ref) async* {
+/// Washer: assigned jobs. autoDispose + 12s polling so new admin assignments
+/// and status changes appear within seconds.
+final washerJobsProvider =
+    StreamProvider.autoDispose<List<Booking>>((ref) async* {
   ref.watch(tokenProvider);
   final dio = ref.read(apiClientProvider);
   var disposed = false;
@@ -35,7 +36,7 @@ final washerJobsProvider = StreamProvider<List<Booking>>((ref) async* {
 
   yield await fetch();
   while (!disposed) {
-    await Future<void>.delayed(const Duration(seconds: 25));
+    await Future<void>.delayed(const Duration(seconds: 12));
     if (disposed) break;
     yield await fetch();
   }

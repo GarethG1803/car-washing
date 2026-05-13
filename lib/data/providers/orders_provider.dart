@@ -12,11 +12,9 @@ String _friendlyError(Object e, String fallback) {
   return fallback;
 }
 
-/// Customer: list of my orders. Auto-refreshes every 25s while the provider
-/// has listeners, so customers see washer status changes without manually
-/// pulling to refresh.
+/// Customer: list of my orders. Polls every 12s while the screen is watching.
 final customerOrdersProvider =
-    StreamProvider<List<Booking>>((ref) async* {
+    StreamProvider.autoDispose<List<Booking>>((ref) async* {
   ref.watch(tokenProvider);
   final dio = ref.read(apiClientProvider);
   var disposed = false;
@@ -37,15 +35,17 @@ final customerOrdersProvider =
 
   yield await fetch();
   while (!disposed) {
-    await Future<void>.delayed(const Duration(seconds: 25));
+    await Future<void>.delayed(const Duration(seconds: 12));
     if (disposed) break;
     yield await fetch();
   }
 });
 
-/// Customer: single-order detail with history. Polls every 20s.
-final orderDetailProvider =
-    StreamProvider.family<Map<String, dynamic>?, String>((ref, id) async* {
+/// Customer: single-order detail. Auto-disposed so every navigation re-fetches
+/// fresh — no stale-cache surprises when the user returns to a detail screen
+/// after the status has changed elsewhere. Polls every 8s while open.
+final orderDetailProvider = StreamProvider.autoDispose
+    .family<Map<String, dynamic>?, String>((ref, id) async* {
   ref.watch(tokenProvider);
   final dio = ref.read(apiClientProvider);
   var disposed = false;
@@ -64,7 +64,7 @@ final orderDetailProvider =
 
   yield await fetch();
   while (!disposed) {
-    await Future<void>.delayed(const Duration(seconds: 20));
+    await Future<void>.delayed(const Duration(seconds: 8));
     if (disposed) break;
     yield await fetch();
   }
@@ -86,6 +86,9 @@ class _CustomerOrderActions {
         data: {if (reason != null) 'reason': reason},
       );
       if (response.data['success'] == true) {
+        // Force fresh refetch immediately so the caller's screen reflects
+        // the cancel before the next polling tick (otherwise the order
+        // could briefly still appear in the Upcoming tab).
         _ref.invalidate(customerOrdersProvider);
         _ref.invalidate(orderDetailProvider(orderId));
         return null;
