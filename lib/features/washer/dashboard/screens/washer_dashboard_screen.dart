@@ -96,6 +96,7 @@ class WasherDashboardScreen extends ConsumerWidget {
                       final pendingCount = jobs
                           .where((j) =>
                               j.status == BookingStatus.pending ||
+                              j.status == BookingStatus.assigned ||
                               j.status == BookingStatus.confirmed)
                           .length;
 
@@ -221,6 +222,8 @@ class _TodayJobCard extends StatelessWidget {
 
   Color get _statusColor {
     switch (job.status) {
+      case BookingStatus.assigned:
+        return AppColors.warning;
       case BookingStatus.confirmed:
         return AppColors.primary;
       case BookingStatus.washerEnRoute:
@@ -229,6 +232,8 @@ class _TodayJobCard extends StatelessWidget {
       case BookingStatus.completed:
         return AppColors.success;
       case BookingStatus.cancelled:
+      case BookingStatus.noShow:
+      case BookingStatus.failed:
         return AppColors.error;
       default:
         return AppColors.warning;
@@ -237,6 +242,8 @@ class _TodayJobCard extends StatelessWidget {
 
   String get _statusLabel {
     switch (job.status) {
+      case BookingStatus.assigned:
+        return 'Tap to Accept';
       case BookingStatus.confirmed:
         return 'Confirmed';
       case BookingStatus.washerEnRoute:
@@ -247,6 +254,10 @@ class _TodayJobCard extends StatelessWidget {
         return 'Completed';
       case BookingStatus.cancelled:
         return 'Cancelled';
+      case BookingStatus.noShow:
+        return 'No Show';
+      case BookingStatus.failed:
+        return 'Failed';
       default:
         return 'Pending';
     }

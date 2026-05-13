@@ -55,6 +55,7 @@ class _JobQueueScreenState extends ConsumerState<JobQueueScreen>
             final incoming = jobs
                 .where((j) =>
                     j.status == BookingStatus.pending ||
+                    j.status == BookingStatus.assigned ||
                     j.status == BookingStatus.confirmed)
                 .length;
             final active = jobs
@@ -110,6 +111,7 @@ class _JobQueueScreenState extends ConsumerState<JobQueueScreen>
           final upcoming = jobs
               .where((j) =>
                   j.status == BookingStatus.pending ||
+                  j.status == BookingStatus.assigned ||
                   j.status == BookingStatus.confirmed)
               .toList()
             ..sort((a, b) => a.scheduledDate.compareTo(b.scheduledDate));
@@ -166,6 +168,8 @@ class _JobList extends StatelessWidget {
 
   AppStatus _appStatus(BookingStatus s) {
     switch (s) {
+      case BookingStatus.assigned:
+        return AppStatus.assigned;
       case BookingStatus.confirmed:
         return AppStatus.confirmed;
       case BookingStatus.washerEnRoute:
@@ -175,6 +179,10 @@ class _JobList extends StatelessWidget {
         return AppStatus.completed;
       case BookingStatus.cancelled:
         return AppStatus.cancelled;
+      case BookingStatus.noShow:
+        return AppStatus.noShow;
+      case BookingStatus.failed:
+        return AppStatus.failed;
       default:
         return AppStatus.pending;
     }
