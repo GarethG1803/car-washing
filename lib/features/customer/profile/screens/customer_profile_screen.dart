@@ -70,18 +70,6 @@ class CustomerProfileScreen extends ConsumerWidget {
                       () => context.push('/customer/profile/edit')),
                   _menuItem(Icons.directions_car, 'My Vehicles',
                       () => context.push('/customer/profile/vehicles')),
-                  _menuItem(Icons.payment, 'Payment Methods',
-                      () => context.push('/customer/payments')),
-                  _menuItem(
-                      Icons.location_on_outlined, 'Saved Addresses', () {}),
-                ]),
-                const Gap(16),
-                _menuSection('Support', [
-                  _menuItem(Icons.help_outline, 'Help Center', () {}),
-                  _menuItem(
-                      Icons.privacy_tip_outlined, 'Privacy Policy', () {}),
-                  _menuItem(
-                      Icons.description_outlined, 'Terms of Service', () {}),
                 ]),
                 const Gap(24),
                 SizedBox(

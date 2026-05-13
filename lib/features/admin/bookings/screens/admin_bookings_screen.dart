@@ -11,20 +11,36 @@ import 'package:clean_ride/data/models/booking.dart';
 import 'package:clean_ride/data/providers/admin_orders_provider.dart';
 import 'package:gap/gap.dart';
 
+/// Filter buckets the admin actually needs, in priority order.
+enum _AdminFilter {
+  needsAction, // pending (unassigned) + assigned (waiting for washer to accept)
+  active,      // confirmed + on the way + in progress
+  needsPayment,// done but unpaid
+  done,        // done + paid
+  cancelled,   // cancelled + no_show + failed
+  all,
+}
+
 class AdminBookingsScreen extends ConsumerStatefulWidget {
   const AdminBookingsScreen({super.key});
 
   @override
-  ConsumerState<AdminBookingsScreen> createState() => _AdminBookingsScreenState();
+  ConsumerState<AdminBookingsScreen> createState() =>
+      _AdminBookingsScreenState();
 }
 
 class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
-  int _selectedFilter = 0;
+  /// Default to what admin needs to do right now.
+  _AdminFilter _filter = _AdminFilter.needsAction;
   String _search = '';
-  final _filters = ['All', 'Pending', 'Active', 'Completed', 'Cancelled'];
 
-  AppStatus _appStatus(BookingStatus s) {
-    switch (s) {
+  AppStatus _appStatus(Booking b) {
+    if (b.needsPayment) return AppStatus.needsPayment;
+    switch (b.status) {
+      case BookingStatus.pending:
+        return AppStatus.pending;
+      case BookingStatus.assigned:
+        return AppStatus.assigned;
       case BookingStatus.confirmed:
         return AppStatus.confirmed;
       case BookingStatus.washerEnRoute:
@@ -34,24 +50,33 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
         return AppStatus.completed;
       case BookingStatus.cancelled:
         return AppStatus.cancelled;
-      default:
-        return AppStatus.pending;
+      case BookingStatus.noShow:
+        return AppStatus.noShow;
+      case BookingStatus.failed:
+        return AppStatus.failed;
     }
   }
 
   bool _matchesFilter(Booking b) {
-    switch (_selectedFilter) {
-      case 1:
+    switch (_filter) {
+      case _AdminFilter.needsAction:
         return b.status == BookingStatus.pending ||
-            b.status == BookingStatus.confirmed;
-      case 2:
-        return b.status == BookingStatus.washerEnRoute ||
+            b.status == BookingStatus.assigned;
+      case _AdminFilter.active:
+        return b.status == BookingStatus.confirmed ||
+            b.status == BookingStatus.washerEnRoute ||
             b.status == BookingStatus.inProgress;
-      case 3:
-        return b.status == BookingStatus.completed;
-      case 4:
-        return b.status == BookingStatus.cancelled;
-      default:
+      case _AdminFilter.needsPayment:
+        return b.status == BookingStatus.completed &&
+            b.paymentStatus != 'paid';
+      case _AdminFilter.done:
+        return b.status == BookingStatus.completed &&
+            b.paymentStatus == 'paid';
+      case _AdminFilter.cancelled:
+        return b.status == BookingStatus.cancelled ||
+            b.status == BookingStatus.noShow ||
+            b.status == BookingStatus.failed;
+      case _AdminFilter.all:
         return true;
     }
   }
@@ -61,6 +86,7 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
     final q = _search.toLowerCase();
     return b.id.toLowerCase().contains(q) ||
         (b.customerName?.toLowerCase().contains(q) ?? false) ||
+        (b.washerName?.toLowerCase().contains(q) ?? false) ||
         b.vehicleId.toLowerCase().contains(q) ||
         b.address.toLowerCase().contains(q);
   }
@@ -84,6 +110,7 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
       ),
       body: Column(
         children: [
+          // Filter + search header
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -91,11 +118,11 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
               TextField(
                 onChanged: (v) => setState(() => _search = v),
                 decoration: InputDecoration(
-                  hintText: 'Search by order ID, customer, plate, address...',
+                  hintText: 'Search order ID, customer, washer, plate…',
                   hintStyle: AppTypography.bodyMedium
                       .copyWith(color: AppColors.textSecondary),
-                  prefixIcon:
-                      const Icon(Icons.search, color: AppColors.textSecondary),
+                  prefixIcon: const Icon(Icons.search,
+                      color: AppColors.textSecondary),
                   filled: true,
                   fillColor: AppColors.background,
                   border: OutlineInputBorder(
@@ -106,17 +133,14 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
                 ),
               ),
               const Gap(12),
-              SizedBox(
-                height: 36,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _filters.length,
-                  separatorBuilder: (_, __) => const Gap(8),
-                  itemBuilder: (_, i) => AppChip(
-                    label: _filters[i],
-                    isSelected: _selectedFilter == i,
-                    onTap: () => setState(() => _selectedFilter = i),
-                  ),
+              // Filter chips with live counts
+              ordersAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (orders) => _FilterChips(
+                  current: _filter,
+                  counts: _countsByFilter(orders),
+                  onChanged: (f) => setState(() => _filter = f),
                 ),
               ),
             ]),
@@ -135,7 +159,8 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
                           style: AppTypography.titleMedium),
                       const Gap(16),
                       TextButton(
-                        onPressed: () => ref.invalidate(adminOrdersProvider),
+                        onPressed: () =>
+                            ref.invalidate(adminOrdersProvider),
                         child: const Text('Retry'),
                       ),
                     ]),
@@ -144,8 +169,9 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
                 final filtered = orders
                     .where((b) => _matchesFilter(b) && _matchesSearch(b))
                     .toList()
-                  ..sort(
-                      (a, b) => b.scheduledDate.compareTo(a.scheduledDate));
+                  // Newest first — when a customer just booked, they appear at
+                  // the top of the queue so admin can assign them quickly.
+                  ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
                 if (filtered.isEmpty) {
                   return Center(
@@ -155,7 +181,7 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
                           const Icon(Icons.inbox_outlined,
                               size: 48, color: AppColors.textSecondary),
                           const Gap(12),
-                          Text('No bookings found',
+                          Text('No bookings here',
                               style: AppTypography.bodyMedium.copyWith(
                                   color: AppColors.textSecondary)),
                         ]),
@@ -166,86 +192,12 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   itemCount: filtered.length,
                   separatorBuilder: (_, __) => const Gap(12),
-                  itemBuilder: (context, index) {
-                    final booking = filtered[index];
-                    final shortId = booking.id.length > 8
-                        ? booking.id.substring(0, 8).toUpperCase()
-                        : booking.id.toUpperCase();
-                    return GestureDetector(
-                      onTap: () =>
-                          context.push('/admin/bookings/${booking.id}'),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius:
-                              BorderRadius.circular(AppSpacing.radiusMd),
-                          boxShadow: const [
-                            BoxShadow(
-                                color: Color(0x0A000000),
-                                blurRadius: 10,
-                                offset: Offset(0, 2)),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(children: [
-                              Text('#$shortId',
-                                  style: AppTypography.titleMedium),
-                              const Spacer(),
-                              AppStatusIndicator(
-                                  status: _appStatus(booking.status)),
-                            ]),
-                            const Gap(8),
-                            Row(children: [
-                              const Icon(Icons.person_outline,
-                                  size: 16, color: AppColors.textSecondary),
-                              const Gap(4),
-                              Expanded(
-                                child: Text(
-                                  booking.customerName ?? 'Unknown customer',
-                                  style: AppTypography.bodyMedium.copyWith(
-                                      color: AppColors.textSecondary),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ]),
-                            const Gap(4),
-                            Row(children: [
-                              const Icon(Icons.directions_car_outlined,
-                                  size: 16, color: AppColors.textSecondary),
-                              const Gap(4),
-                              Text(
-                                booking.vehicleId.toUpperCase(),
-                                style: AppTypography.bodyMedium
-                                    .copyWith(color: AppColors.textSecondary),
-                              ),
-                              const Gap(16),
-                              const Icon(Icons.calendar_today,
-                                  size: 14, color: AppColors.textSecondary),
-                              const Gap(4),
-                              Text(
-                                DateFormat('MMM dd, HH:mm')
-                                    .format(booking.scheduledDate),
-                                style: AppTypography.bodyMedium
-                                    .copyWith(color: AppColors.textSecondary),
-                              ),
-                            ]),
-                            const Gap(4),
-                            Text(
-                              booking.address,
-                              style: AppTypography.labelSmall.copyWith(
-                                  color: AppColors.textSecondary),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                  itemBuilder: (context, i) => _BookingTile(
+                    booking: filtered[i],
+                    statusBadge: _appStatus(filtered[i]),
+                    onTap: () => context
+                        .push('/admin/bookings/${filtered[i].id}'),
+                  ),
                 );
               },
             ),
@@ -253,5 +205,201 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
         ],
       ),
     );
+  }
+
+  Map<_AdminFilter, int> _countsByFilter(List<Booking> orders) {
+    final counts = <_AdminFilter, int>{};
+    for (final f in _AdminFilter.values) {
+      counts[f] = orders.where((b) {
+        switch (f) {
+          case _AdminFilter.needsAction:
+            return b.status == BookingStatus.pending ||
+                b.status == BookingStatus.assigned;
+          case _AdminFilter.active:
+            return b.status == BookingStatus.confirmed ||
+                b.status == BookingStatus.washerEnRoute ||
+                b.status == BookingStatus.inProgress;
+          case _AdminFilter.needsPayment:
+            return b.status == BookingStatus.completed &&
+                b.paymentStatus != 'paid';
+          case _AdminFilter.done:
+            return b.status == BookingStatus.completed &&
+                b.paymentStatus == 'paid';
+          case _AdminFilter.cancelled:
+            return b.status == BookingStatus.cancelled ||
+                b.status == BookingStatus.noShow ||
+                b.status == BookingStatus.failed;
+          case _AdminFilter.all:
+            return true;
+        }
+      }).length;
+    }
+    return counts;
+  }
+}
+
+class _FilterChips extends StatelessWidget {
+  final _AdminFilter current;
+  final Map<_AdminFilter, int> counts;
+  final ValueChanged<_AdminFilter> onChanged;
+
+  const _FilterChips({
+    required this.current,
+    required this.counts,
+    required this.onChanged,
+  });
+
+  String _label(_AdminFilter f) {
+    switch (f) {
+      case _AdminFilter.needsAction:
+        return 'Needs Action';
+      case _AdminFilter.active:
+        return 'Active';
+      case _AdminFilter.needsPayment:
+        return 'Needs Payment';
+      case _AdminFilter.done:
+        return 'Done';
+      case _AdminFilter.cancelled:
+        return 'Cancelled';
+      case _AdminFilter.all:
+        return 'All';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 36,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _AdminFilter.values.length,
+        separatorBuilder: (_, __) => const Gap(8),
+        itemBuilder: (_, i) {
+          final f = _AdminFilter.values[i];
+          final count = counts[f] ?? 0;
+          return AppChip(
+            label: count > 0 ? '${_label(f)} ($count)' : _label(f),
+            isSelected: current == f,
+            onTap: () => onChanged(f),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _BookingTile extends StatelessWidget {
+  final Booking booking;
+  final AppStatus statusBadge;
+  final VoidCallback onTap;
+
+  const _BookingTile({
+    required this.booking,
+    required this.statusBadge,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isUnassigned = booking.status == BookingStatus.pending;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 10,
+                offset: Offset(0, 2))
+          ],
+          // Subtle yellow border for orders that need admin to assign.
+          border: isUnassigned
+              ? Border.all(color: AppColors.warning.withValues(alpha: 0.4))
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Text('#${booking.shortId}',
+                  style: AppTypography.titleMedium
+                      .copyWith(fontWeight: FontWeight.w700)),
+              const Gap(8),
+              if (booking.serviceName != null)
+                Expanded(
+                  child: Text(booking.serviceName!,
+                      style: AppTypography.labelSmall
+                          .copyWith(color: AppColors.textSecondary),
+                      overflow: TextOverflow.ellipsis),
+                )
+              else
+                const Spacer(),
+              AppStatusIndicator(status: statusBadge),
+            ]),
+            const Gap(10),
+            // Customer + washer in two clear rows
+            _row(Icons.person_outline,
+                booking.customerName ?? 'Unknown customer',
+                bold: true),
+            const Gap(4),
+            _row(
+              Icons.engineering_outlined,
+              booking.washerName ?? 'Not assigned yet',
+              dim: booking.washerName == null,
+            ),
+            const Gap(10),
+            const Divider(height: 1, color: AppColors.divider),
+            const Gap(10),
+            Row(children: [
+              const Icon(Icons.directions_car_outlined,
+                  size: 14, color: AppColors.textSecondary),
+              const Gap(4),
+              Text(booking.vehicleId.toUpperCase(),
+                  style: AppTypography.bodyMedium
+                      .copyWith(color: AppColors.textSecondary)),
+              const Gap(12),
+              const Icon(Icons.calendar_today,
+                  size: 14, color: AppColors.textSecondary),
+              const Gap(4),
+              Text(
+                DateFormat('MMM dd, HH:mm').format(booking.scheduledDate),
+                style: AppTypography.bodyMedium
+                    .copyWith(color: AppColors.textSecondary),
+              ),
+              const Spacer(),
+              Text(
+                'Rp ${NumberFormat('#,###').format(booking.totalAmount.toInt())}',
+                style: AppTypography.labelLarge.copyWith(
+                    color: AppColors.primary, fontWeight: FontWeight.w700),
+              ),
+            ]),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _row(IconData icon, String text, {bool bold = false, bool dim = false}) {
+    return Row(children: [
+      Icon(icon, size: 15,
+          color: dim ? AppColors.warning : AppColors.textSecondary),
+      const Gap(6),
+      Expanded(
+        child: Text(
+          text,
+          style: AppTypography.bodyMedium.copyWith(
+            color: dim ? AppColors.warning : AppColors.textPrimary,
+            fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
+            fontStyle: dim ? FontStyle.italic : FontStyle.normal,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    ]);
   }
 }

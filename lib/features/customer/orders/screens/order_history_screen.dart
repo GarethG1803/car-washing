@@ -74,32 +74,34 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen>
             ],
           ),
         ),
-        data: (orders) => TabBarView(
-          controller: _tabController,
-          children: [
-            _buildList(
-              orders
+        data: (orders) {
+          // Newest first — match what the customer just did.
+          final sorted = [...orders]
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return TabBarView(
+            controller: _tabController,
+            children: [
+              _buildList(sorted
                   .where((b) =>
                       b.status == BookingStatus.pending ||
+                      b.status == BookingStatus.assigned ||
                       b.status == BookingStatus.confirmed)
-                  .toList(),
-            ),
-            _buildList(
-              orders
+                  .toList()),
+              _buildList(sorted
                   .where((b) =>
                       b.status == BookingStatus.inProgress ||
                       b.status == BookingStatus.washerEnRoute)
-                  .toList(),
-            ),
-            _buildList(
-              orders
+                  .toList()),
+              _buildList(sorted
                   .where((b) =>
                       b.status == BookingStatus.completed ||
-                      b.status == BookingStatus.cancelled)
-                  .toList(),
-            ),
-          ],
-        ),
+                      b.status == BookingStatus.cancelled ||
+                      b.status == BookingStatus.noShow ||
+                      b.status == BookingStatus.failed)
+                  .toList()),
+            ],
+          );
+        },
       ),
     );
   }
