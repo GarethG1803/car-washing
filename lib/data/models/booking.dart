@@ -38,6 +38,7 @@ class Booking {
   final String? notes;
   final String? serviceName;
   final String? paymentStatus;
+  final String? xenditInvoiceId;
   final DateTime createdAt;
   final DateTime? completedAt;
 
@@ -65,6 +66,7 @@ class Booking {
     this.notes,
     this.serviceName,
     this.paymentStatus,
+    this.xenditInvoiceId,
     required this.createdAt,
     this.completedAt,
   });
@@ -266,6 +268,7 @@ class Booking {
       notes: json['notes']?.toString(),
       serviceName: json['service_name']?.toString(),
       paymentStatus: json['payment_status']?.toString(),
+      xenditInvoiceId: json['xendit_invoice_id']?.toString(),
       createdAt:
           parseServerDateTime(json['created_at']) ?? DateTime.now(),
     );

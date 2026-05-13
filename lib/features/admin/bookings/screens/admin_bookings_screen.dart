@@ -13,11 +13,12 @@ import 'package:gap/gap.dart';
 
 /// Filter buckets the admin actually needs, in priority order.
 enum _AdminFilter {
-  needsAction, // pending (unassigned) + assigned (waiting for washer to accept)
-  active,      // confirmed + on the way + in progress
-  needsPayment,// done but unpaid
-  done,        // done + paid
-  cancelled,   // cancelled + no_show + failed
+  unassigned,    // pending — admin must pick a washer (yellow-border list)
+  awaitingWasher,// assigned — washer assigned, waiting for them to tap Accept
+  active,        // confirmed + on the way + in progress
+  needsPayment,  // done but unpaid
+  done,          // done + paid
+  cancelled,     // cancelled + no_show + failed
   all,
 }
 
@@ -30,8 +31,8 @@ class AdminBookingsScreen extends ConsumerStatefulWidget {
 }
 
 class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
-  /// Default to what admin needs to do right now.
-  _AdminFilter _filter = _AdminFilter.needsAction;
+  /// Default to what admin needs to do right now (truly unassigned).
+  _AdminFilter _filter = _AdminFilter.unassigned;
   String _search = '';
 
   AppStatus _appStatus(Booking b) {
@@ -59,9 +60,10 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
 
   bool _matchesFilter(Booking b) {
     switch (_filter) {
-      case _AdminFilter.needsAction:
-        return b.status == BookingStatus.pending ||
-            b.status == BookingStatus.assigned;
+      case _AdminFilter.unassigned:
+        return b.status == BookingStatus.pending;
+      case _AdminFilter.awaitingWasher:
+        return b.status == BookingStatus.assigned;
       case _AdminFilter.active:
         return b.status == BookingStatus.confirmed ||
             b.status == BookingStatus.washerEnRoute ||
@@ -212,9 +214,10 @@ class _AdminBookingsScreenState extends ConsumerState<AdminBookingsScreen> {
     for (final f in _AdminFilter.values) {
       counts[f] = orders.where((b) {
         switch (f) {
-          case _AdminFilter.needsAction:
-            return b.status == BookingStatus.pending ||
-                b.status == BookingStatus.assigned;
+          case _AdminFilter.unassigned:
+            return b.status == BookingStatus.pending;
+          case _AdminFilter.awaitingWasher:
+            return b.status == BookingStatus.assigned;
           case _AdminFilter.active:
             return b.status == BookingStatus.confirmed ||
                 b.status == BookingStatus.washerEnRoute ||
@@ -251,8 +254,10 @@ class _FilterChips extends StatelessWidget {
 
   String _label(_AdminFilter f) {
     switch (f) {
-      case _AdminFilter.needsAction:
-        return 'Needs Action';
+      case _AdminFilter.unassigned:
+        return 'Unassigned';
+      case _AdminFilter.awaitingWasher:
+        return 'Awaiting Washer';
       case _AdminFilter.active:
         return 'Active';
       case _AdminFilter.needsPayment:
@@ -302,6 +307,12 @@ class _BookingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUnassigned = booking.status == BookingStatus.pending;
+    final isTerminal = booking.status == BookingStatus.cancelled ||
+        booking.status == BookingStatus.noShow ||
+        booking.status == BookingStatus.failed ||
+        booking.status == BookingStatus.completed;
+    final isPaid =
+        booking.status == BookingStatus.completed && booking.paymentStatus == 'paid';
 
     return GestureDetector(
       onTap: onTap,
@@ -341,16 +352,20 @@ class _BookingTile extends StatelessWidget {
               AppStatusIndicator(status: statusBadge),
             ]),
             const Gap(10),
-            // Customer + washer in two clear rows
             _row(Icons.person_outline,
                 booking.customerName ?? 'Unknown customer',
                 bold: true),
-            const Gap(4),
-            _row(
-              Icons.engineering_outlined,
-              booking.washerName ?? 'Not assigned yet',
-              dim: booking.washerName == null,
-            ),
+            // Washer row:
+            //  - if washer is set, show name
+            //  - if pending and no washer, show "Not assigned yet" warning
+            //  - for terminal-but-never-assigned orders, hide the row entirely
+            if (booking.washerName != null) ...[
+              const Gap(4),
+              _row(Icons.engineering_outlined, booking.washerName!),
+            ] else if (!isTerminal) ...[
+              const Gap(4),
+              _row(Icons.engineering_outlined, 'Not assigned yet', dim: true),
+            ],
             const Gap(10),
             const Divider(height: 1, color: AppColors.divider),
             const Gap(10),
@@ -377,6 +392,28 @@ class _BookingTile extends StatelessWidget {
                     color: AppColors.primary, fontWeight: FontWeight.w700),
               ),
             ]),
+            // Xendit reference for completed+paid orders so admin can
+            // cross-check payments without opening the detail screen.
+            if (isPaid && booking.xenditInvoiceId != null) ...[
+              const Gap(8),
+              Row(children: [
+                const Icon(Icons.receipt_long_rounded,
+                    size: 13, color: AppColors.success),
+                const Gap(4),
+                Text('Xendit ref: ',
+                    style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.textSecondary)),
+                Flexible(
+                  child: Text(
+                    booking.xenditInvoiceId!,
+                    style: AppTypography.labelSmall.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'monospace'),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ]),
+            ],
           ],
         ),
       ),
